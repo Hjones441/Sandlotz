@@ -62,17 +62,48 @@ export const SPORT_OPTIONS: { value: SportType; label: string; emoji: string }[]
   { value: 'other',      label: 'Other',          emoji: '🏅' },
 ]
 
+// Heart-rate zone multipliers applied when verified HR data is present.
+// Zones based on % of typical max HR (220 - age ≈ 190 used as reference).
+// If HR data comes from a connected app (not 'Manual'), a verification bonus is applied.
+function hrZoneMultiplier(avgHR: number | undefined): number {
+  if (!avgHR) return 1.0
+  if (avgHR >= 170) return 1.30  // Zone 5 — max effort
+  if (avgHR >= 150) return 1.20  // Zone 4 — hard
+  if (avgHR >= 130) return 1.10  // Zone 3 — aerobic
+  if (avgHR >= 110) return 1.05  // Zone 2 — easy
+  return 1.0                      // Zone 1 — very light
+}
+
+// Elevation bonus: +1 pt per 100 m of verified gain
+function elevationBonus(elevationGain: number | undefined): number {
+  if (!elevationGain) return 0
+  return Math.floor(elevationGain / 100)
+}
+
+export interface ScoringFitnessData {
+  source?:       string
+  heartRateAvg?: number
+  elevationGain?: number
+}
+
 export function calculateActivityScore(
   sport: SportType,
   durationMinutes: number,
   distanceKm: number,
   intensity: number,
+  fitnessData?: ScoringFitnessData,
 ): number {
-  const sportMult     = SPORT_MULTIPLIERS[sport] ?? 1.0
-  const intensityMult = INTENSITY_MULTIPLIERS[intensity] ?? 1.0
-  const basePoints    = durationMinutes * intensityMult * sportMult
-  const distanceBonus = distanceKm * 2.0 * sportMult
-  return Math.round(basePoints + distanceBonus)
+  const sportMult      = SPORT_MULTIPLIERS[sport] ?? 1.0
+  const intensityMult  = INTENSITY_MULTIPLIERS[intensity] ?? 1.0
+  const hrMult         = hrZoneMultiplier(fitnessData?.heartRateAvg)
+  // Verified source (non-manual) adds a 5% trust bonus
+  const verifiedBonus  = fitnessData?.source && fitnessData.source !== 'Manual' ? 1.05 : 1.0
+
+  const basePoints     = durationMinutes * intensityMult * sportMult * hrMult * verifiedBonus
+  const distanceBonus  = distanceKm * 2.0 * sportMult
+  const elBonus        = elevationBonus(fitnessData?.elevationGain)
+
+  return Math.round(basePoints + distanceBonus + elBonus)
 }
 
 export function formatScore(score: number): string {

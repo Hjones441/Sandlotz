@@ -64,6 +64,9 @@ export default function LogActivityPage() {
     Number(duration) || 0,
     Number(distance) || 0,
     intensity,
+    showFitnessData
+      ? { source: fitnessSource, heartRateAvg: heartRateAvg ? Number(heartRateAvg) : undefined, elevationGain: elevationGain ? Number(elevationGain) : undefined }
+      : undefined,
   )
 
   function handleFileChange(files: FileList | null) {

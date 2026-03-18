@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { calculateActivityScore, SportType } from './sandlotzScore'
+import type { ScoringFitnessData } from './sandlotzScore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,7 +111,10 @@ export async function logActivity(params: {
   fitnessData?:    FitnessData
 }): Promise<number> {
   const { uid, sport, durationMinutes, distanceKm, intensity, notes, city, displayName, photoURL, imageUrls, fitnessData } = params
-  const score = calculateActivityScore(sport, durationMinutes, distanceKm, intensity)
+  const scoringFitness: ScoringFitnessData | undefined = fitnessData
+    ? { source: fitnessData.source, heartRateAvg: fitnessData.heartRateAvg, elevationGain: fitnessData.elevationGain }
+    : undefined
+  const score = calculateActivityScore(sport, durationMinutes, distanceKm, intensity, scoringFitness)
 
   // Write activity document
   await addDoc(collection(db, 'activities'), {
