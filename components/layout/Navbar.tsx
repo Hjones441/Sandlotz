@@ -2,152 +2,216 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { Menu, X, Trophy, Zap, User, LogOut, LayoutDashboard, Gift } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { ChevronDown, Menu, X, ShoppingCart, Rocket, Gift } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-const NAV_LINKS = [
-  { href: '/leaderboard',  label: 'Leaderboard', icon: <Trophy    className="w-4 h-4" /> },
-  { href: '/log-activity', label: 'Post',         icon: <Zap       className="w-4 h-4" /> },
-  { href: '/perks',        label: 'Perks',        icon: <Gift      className="w-4 h-4" /> },
+const ABOUT_ITEMS = [
+  { label: 'What is Sandlotz',      href: '/about/what-is-sandlotz' },
+  { label: 'Products',               href: '/about/products' },
+  { label: 'Leaderboards Explained', href: '/about/leaderboards-explained' },
+  { label: 'Scoring & Verification', href: '/about/scoring-verification' },
+  { label: 'Marketplace Guide',      href: '/about/marketplace-guide' },
 ]
 
-export default function Navbar() {
-  const { user, profile, logOut } = useAuth()
-  const pathname  = usePathname()
-  const router    = useRouter()
+const INVESTORS_ITEMS: { label: string; href: string }[] = []
+// Investor sub-items will be added from subsequent screenshots
+
+function DropdownMenu({
+  label,
+  items,
+  active,
+}: {
+  label: string
+  items: { label: string; href: string }[]
+  active: boolean
+}) {
   const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all
+          ${active ? 'bg-purple-500/40 text-yellow-400' : 'text-yellow-400 hover:bg-purple-500/30'}`}
+      >
+        {label}
+        <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && items.length > 0 && (
+        <div className="absolute top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl py-1 z-50">
+          {items.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className="block px-4 py-2.5 text-sm text-gray-800 hover:bg-purple-50 transition-colors"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function Navbar() {
+  const { user, logOut } = useAuth()
+  const pathname = usePathname()
+  const router   = useRouter()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   async function handleLogOut() {
     await logOut()
     router.push('/')
-    setOpen(false)
+    setMobileOpen(false)
   }
 
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10"
-         style={{ background: 'rgba(30,16,64,0.95)', backdropFilter: 'blur(12px)' }}>
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+  const navLink = (href: string, label: string) => (
+    <Link
+      key={href}
+      href={href}
+      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
+        ${pathname === href
+          ? 'bg-purple-500/40 text-yellow-400'
+          : 'text-yellow-400 hover:bg-purple-500/30'}`}
+    >
+      {label}
+    </Link>
+  )
 
-        {/* Logo */}
-        <Link href="/" className="text-2xl font-black tracking-tight text-gold">
-          SANDLOTZ
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#5B21B6]">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-1">
+
+        {/* Home */}
+        {navLink('/', 'Home')}
+
+        {/* About dropdown */}
+        <DropdownMenu
+          label="About"
+          items={ABOUT_ITEMS}
+          active={pathname.startsWith('/about')}
+        />
+
+        {/* Investors dropdown */}
+        <DropdownMenu
+          label="Investors"
+          items={INVESTORS_ITEMS}
+          active={pathname.startsWith('/investors')}
+        />
+
+        {/* Direct links */}
+        {navLink('/marketplace', 'Marketplace')}
+        {navLink('/leaderboard', 'Leaderboard')}
+        {navLink('/profile',     'Profile')}
+        {navLink('/login',       'Login')}
+
+        {/* Perks */}
+        <Link
+          href="/perks"
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all
+            ${pathname === '/perks'
+              ? 'bg-purple-500/40 text-yellow-400'
+              : 'text-yellow-400 hover:bg-purple-500/30'}`}
+        >
+          <Gift className="w-4 h-4" />
+          Perks
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map(l => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all
-                ${pathname === l.href
-                  ? 'bg-brand-yellow text-brand-purple-dark'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-            >
-              {l.icon}{l.label}
-            </Link>
-          ))}
-        </div>
+        {/* Cart */}
+        <button className="p-2 text-yellow-400 hover:bg-purple-500/30 rounded-lg transition-all ml-1">
+          <ShoppingCart className="w-5 h-5" />
+        </button>
 
-        {/* Desktop right side */}
-        <div className="hidden md:flex items-center gap-3">
-          {user ? (
-            <>
-              <Link
-                href="/dashboard"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all
-                  ${pathname === '/dashboard'
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <User className="w-4 h-4" />
-                {profile?.displayName?.split(' ')[0] ?? 'Profile'}
-              </Link>
-              <button
-                onClick={handleLogOut}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login"  className="text-sm font-semibold text-white/70 hover:text-white px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
-                Login
-              </Link>
-              <Link href="/signup" className="btn-primary !py-2 !px-5 text-sm">
-                Get Started
-              </Link>
-            </>
-          )}
-        </div>
+        {/* Demo CTA */}
+        <Link
+          href="/demo"
+          className="ml-2 flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-bold px-5 py-2 rounded-xl text-sm transition-all shadow-md"
+        >
+          <Rocket className="w-4 h-4" />
+          Demo
+        </Link>
 
         {/* Mobile hamburger */}
         <button
-          onClick={() => setOpen(!open)}
-          className="md:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="md:hidden ml-auto p-2 rounded-lg text-yellow-400 hover:bg-purple-500/30 transition-all"
         >
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden border-t border-white/10 px-4 pb-4 pt-2 space-y-1"
-             style={{ background: 'rgba(30,16,64,0.98)' }}>
-          {NAV_LINKS.map(l => (
+      {mobileOpen && (
+        <div className="md:hidden border-t border-purple-400/30 bg-[#5B21B6] px-4 pb-4 pt-2 space-y-1">
+          {[
+            { href: '/',            label: 'Home' },
+            { href: '/marketplace', label: 'Marketplace' },
+            { href: '/leaderboard', label: 'Leaderboard' },
+            { href: '/profile',     label: 'Profile' },
+            { href: '/perks',       label: '🎁 Perks' },
+          ].map(l => (
             <Link
               key={l.href}
               href={l.href}
-              onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all
-                ${pathname === l.href
-                  ? 'bg-brand-yellow text-brand-purple-dark'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
+              onClick={() => setMobileOpen(false)}
+              className="block px-4 py-3 rounded-xl text-sm font-semibold text-yellow-400 hover:bg-purple-500/30 transition-all"
             >
-              {l.icon}{l.label}
+              {l.label}
             </Link>
           ))}
 
-          <div className="border-t border-white/10 pt-2 mt-2">
+          <div className="border-t border-purple-400/30 pt-2 mt-2 space-y-1">
+            <p className="px-4 py-1 text-xs text-yellow-400/60 font-semibold uppercase tracking-wider">About</p>
+            {ABOUT_ITEMS.map(item => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="block px-4 py-2.5 rounded-xl text-sm text-yellow-400 hover:bg-purple-500/30 transition-all"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="border-t border-purple-400/30 pt-2 mt-2">
             {user ? (
-              <>
-                <Link href="/dashboard" onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                  <LayoutDashboard className="w-4 h-4" />Dashboard
-                </Link>
-                <Link href="/profile" onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                  <User className="w-4 h-4" />Profile
-                </Link>
-                <button onClick={handleLogOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white hover:bg-white/10 transition-all">
-                  <LogOut className="w-4 h-4" />Sign Out
-                </button>
-              </>
+              <button
+                onClick={handleLogOut}
+                className="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-yellow-400/70 hover:bg-purple-500/30 transition-all"
+              >
+                Sign Out
+              </button>
             ) : (
-              <>
-                <Link href="/login"  onClick={() => setOpen(false)}
-                  className="block px-4 py-3 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                  Login
-                </Link>
-                <Link href="/signup" onClick={() => setOpen(false)}
-                  className="block mt-2 btn-primary text-center text-sm">
-                  Get Started
-                </Link>
-              </>
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="block px-4 py-3 rounded-xl text-sm font-semibold text-yellow-400 hover:bg-purple-500/30 transition-all"
+              >
+                Login
+              </Link>
             )}
+            <Link
+              href="/demo"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 flex items-center justify-center gap-2 bg-yellow-400 text-purple-900 font-bold px-5 py-3 rounded-xl text-sm"
+            >
+              <Rocket className="w-4 h-4" />
+              Demo
+            </Link>
           </div>
         </div>
       )}
