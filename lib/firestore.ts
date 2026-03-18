@@ -29,6 +29,16 @@ export interface UserProfile {
   createdAt:   Timestamp
 }
 
+export interface FitnessData {
+  source:       string          // e.g. 'Strava', 'Garmin', 'Apple Health', 'Manual'
+  heartRateAvg?: number
+  heartRateMax?: number
+  calories?:    number
+  steps?:       number
+  pace?:        string          // e.g. '5:30 /km'
+  elevationGain?: number
+}
+
 export interface Activity {
   id?:             string
   uid:             string
@@ -38,6 +48,8 @@ export interface Activity {
   intensity:       number
   score:           number
   notes:           string
+  imageUrls?:      string[]
+  fitnessData?:    FitnessData
   createdAt:       Timestamp
 }
 
@@ -94,8 +106,10 @@ export async function logActivity(params: {
   city:            string
   displayName:     string
   photoURL:        string | null
+  imageUrls?:      string[]
+  fitnessData?:    FitnessData
 }): Promise<number> {
-  const { uid, sport, durationMinutes, distanceKm, intensity, notes, city, displayName, photoURL } = params
+  const { uid, sport, durationMinutes, distanceKm, intensity, notes, city, displayName, photoURL, imageUrls, fitnessData } = params
   const score = calculateActivityScore(sport, durationMinutes, distanceKm, intensity)
 
   // Write activity document
@@ -107,6 +121,8 @@ export async function logActivity(params: {
     intensity,
     score,
     notes,
+    ...(imageUrls && imageUrls.length > 0 && { imageUrls }),
+    ...(fitnessData && { fitnessData }),
     createdAt: serverTimestamp(),
   })
 
