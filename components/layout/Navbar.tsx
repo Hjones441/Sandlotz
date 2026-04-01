@@ -14,8 +14,10 @@ const ABOUT_ITEMS = [
   { label: 'Marketplace Guide',      href: '/about/marketplace-guide' },
 ]
 
-const INVESTORS_ITEMS: { label: string; href: string }[] = []
-// Investor sub-items will be added from subsequent screenshots
+const INVESTORS_ITEMS = [
+  { label: 'Why Sandlotz',           href: '/investors/why-sandlotz' },
+  { label: 'Partnership Application', href: '/investors/partnership' },
+]
 
 function DropdownMenu({
   label,
@@ -176,6 +178,20 @@ export default function Navbar() {
           <div className="border-t border-purple-400/30 pt-2 mt-2 space-y-1">
             <p className="px-4 py-1 text-xs text-yellow-400/60 font-semibold uppercase tracking-wider">About</p>
             {ABOUT_ITEMS.map(item => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="block px-4 py-2.5 rounded-xl text-sm text-yellow-400 hover:bg-purple-500/30 transition-all"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="border-t border-purple-400/30 pt-2 mt-2 space-y-1">
+            <p className="px-4 py-1 text-xs text-yellow-400/60 font-semibold uppercase tracking-wider">Investors</p>
+            {INVESTORS_ITEMS.map(item => (
               <Link
                 key={item.href}
                 href={item.href}

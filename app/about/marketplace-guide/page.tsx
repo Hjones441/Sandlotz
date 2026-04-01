@@ -1,29 +1,27 @@
 import Link from 'next/link'
-import { ShoppingCart, Tag, CalendarDays, Dumbbell, Star, TrendingUp } from 'lucide-react'
+import { ShoppingCart, Star, Zap, TrendingUp, Timer, ShieldCheck, AlertTriangle } from 'lucide-react'
 
-const LISTING_TYPES = [
+const BOOST_RULES = [
   {
-    icon: Tag,
-    title: 'Gear & Equipment',
-    body: 'Buy and sell used or new sports gear — from running shoes to weights to team uniforms. Listings include photos, condition rating, price, and seller SweatScore for trust.',
+    icon: Timer,
+    title: 'Frequency Limits',
+    body: 'You can only boost a specific listing once every 24 hours. This encourages thoughtful promotion over spamming the button.',
   },
   {
-    icon: CalendarDays,
-    title: 'Events',
-    body: 'Post local pickup games, tournaments, run clubs, or fitness classes. Free to list. Players can RSVP directly through the app, and active users get natural visibility boosts.',
+    icon: TrendingUp,
+    title: 'Diminishing Returns',
+    body: 'Repeatedly boosting the same item without updating it may have a reduced effect over time. Fresh listings get more attention.',
   },
   {
-    icon: Dumbbell,
-    title: 'Coaching Services',
-    body: 'Personal trainers, coaches, and fitness gyms can list their services with pricing and availability. Use PlayerPoints to promote your listing to the top of category searches.',
+    icon: Zap,
+    title: 'Boosts Expire',
+    body: 'A standard boost automatically expires after 48–72 hours. This keeps the marketplace dynamic and requires users to re-engage to stay visible.',
   },
-]
-
-const STEPS = [
-  { step: '01', title: 'Create a Listing', body: 'Choose your listing type (Gear, Event, or Service), add photos, set your price or details, and publish. Takes under 2 minutes.' },
-  { step: '02', title: 'Boost with PlayerPoints', body: 'Spend PlayerPoints to push your listing higher in search results and the community feed. More active athletes earn more points to spend.' },
-  { step: '03', title: 'Connect & Transact', body: 'Buyers message sellers directly through the in-app chat. Coordinate pickup, shipping, or session booking without leaving Sandlotz.' },
-  { step: '04', title: 'Build Your Reputation', body: 'Completed transactions earn you seller reviews. A strong review history and high SweatScore builds trust and drives more interest to your listings.' },
+  {
+    icon: ShieldCheck,
+    title: 'Visibility Queue',
+    body: 'Only a certain number of listings can have premium "top-of-page" placement at once. Boosts place you in a rotating queue for these valuable spots.',
+  },
 ]
 
 export default function MarketplaceGuidePage() {
@@ -31,67 +29,106 @@ export default function MarketplaceGuidePage() {
     <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-6">
 
-        <div className="text-center mb-12">
+        {/* Hero */}
+        <div className="rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-10 mb-12 text-center">
           <h1 className="text-5xl font-black text-white mb-5">Marketplace Guide</h1>
-          <p className="text-white/80 text-lg leading-relaxed">
-            The Sandlotz Marketplace connects athletes, coaches, and fitness businesses in one place.
-            Your athletic activity directly boosts your visibility — the more you play, the more you get seen.
+          <p className="text-white/70 text-lg leading-relaxed">
+            Your hub for buying, selling, and promoting gear, events, and services. Here&apos;s how to make the most of it.
           </p>
         </div>
 
-        {/* Listing types */}
-        <h2 className="text-2xl font-bold text-yellow-400 mb-2">What You Can List</h2>
-        <hr className="border-white/20 mb-6" />
-        <div className="space-y-6 mb-14">
-          {LISTING_TYPES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="flex gap-5">
-              <div className="flex-shrink-0 mt-0.5">
-                <Icon className="w-6 h-6 text-yellow-400" />
-              </div>
-              <div>
-                <h3 className="text-yellow-400 font-bold text-lg mb-1">{title}</h3>
-                <p className="text-white/80 text-sm leading-relaxed">{body}</p>
-              </div>
-            </div>
-          ))}
+        {/* What You Can Post */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-2">
+            <ShoppingCart className="w-6 h-6 text-yellow-400" />
+            <h2 className="text-2xl font-bold text-white">What You Can Post</h2>
+          </div>
+          <hr className="border-white/20 mb-5" />
+          <p className="text-white/70 text-sm mb-5">The marketplace is for more than just used gear. You can list:</p>
+          <ul className="space-y-4">
+            {[
+              { label: 'Gear', body: 'New or used equipment, from basketballs to yoga mats.' },
+              { label: 'Events', body: 'Announce a pickup game, a local tournament, or a group run.' },
+              { label: 'Services', body: 'Offer coaching, personal training, or other sports-related services. Trainers and gyms can promote their expertise and facilities.' },
+              { label: 'Community Posts', body: 'Looking for a doubles partner, starting a new team, or are you a gym announcing a new class schedule? Post it here.' },
+            ].map(({ label, body }) => (
+              <li key={label} className="flex gap-3 text-sm text-white/80">
+                <span className="text-white/40 flex-shrink-0">•</span>
+                <span><span className="font-bold text-white">{label}:</span> {body}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* How it works steps */}
-        <h2 className="text-2xl font-bold text-yellow-400 mb-2">How It Works</h2>
-        <hr className="border-white/20 mb-6" />
-        <div className="space-y-4 mb-14">
-          {STEPS.map(s => (
-            <div key={s.step} className="flex gap-5 rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-5">
-              <span className="text-3xl font-black text-yellow-400/30 flex-shrink-0 leading-none">{s.step}</span>
-              <div>
-                <h3 className="text-white font-bold mb-1">{s.title}</h3>
-                <p className="text-white/70 text-sm leading-relaxed">{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Promoting with Boosts */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="w-6 h-6 text-yellow-400" />
+            <h2 className="text-2xl font-bold text-white">Promoting Your Listing with Boosts</h2>
+          </div>
+          <hr className="border-white/20 mb-5" />
+          <p className="text-white/70 text-sm leading-relaxed mb-6">
+            You earn PlayPoints from your workouts. You can spend those points to &ldquo;boost&rdquo; your listings, giving
+            them more visibility in search results and on the marketplace page. Higher-tier members (All-Star and
+            Legend) get free monthly boosts and even unlimited opportunities to boost.
+          </p>
 
-        {/* Activity = visibility callout */}
-        <div className="flex gap-4 rounded-2xl border border-yellow-400/30 bg-yellow-400/5 px-5 py-4 mb-14">
-          <TrendingUp className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-yellow-400 font-semibold text-sm mb-1">Activity = Visibility</p>
-            <p className="text-white/70 text-sm leading-relaxed">
-              Active Sandlotz users get a natural algorithmic boost in marketplace search results. Log workouts consistently to keep your listings at the top — no extra spend required.
-            </p>
+          {/* Info callout */}
+          <div className="flex gap-3 rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-5 mb-8">
+            <Zap className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-white font-bold text-sm mb-1">What does &ldquo;Unlimited Boosts&rdquo; really mean?</p>
+              <p className="text-white/70 text-sm leading-relaxed">
+                To keep the marketplace fair and prevent spam, our &ldquo;unlimited&rdquo; boosts for Legend-tier members are governed
+                by smart controls. It&apos;s not about endless promotion, but endless <strong className="text-white">opportunity</strong> to promote smartly.
+              </p>
+            </div>
+          </div>
+
+          {/* Rules of Fair Boosting */}
+          <h3 className="text-xl font-bold text-white mb-5">The Rules of Fair Boosting</h3>
+          <div className="grid sm:grid-cols-2 gap-5">
+            {BOOST_RULES.map(({ icon: Icon, title, body }) => (
+              <div key={title} className="flex gap-4">
+                <Icon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-white font-bold text-sm mb-1">{title}</h4>
+                  <p className="text-white/70 text-sm leading-relaxed">{body}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* Safety & Transactions */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-6 h-6 text-yellow-400" />
+            <h2 className="text-2xl font-bold text-white">Safety &amp; Transactions</h2>
+          </div>
+          <hr className="border-white/20 mb-5" />
+          <ul className="space-y-3">
+            <li className="flex gap-3 text-white/80 text-sm"><span className="text-white/40 flex-shrink-0">•</span>For safety, always arrange to meet in well-lit, public places.</li>
+            <li className="flex gap-3 text-white/80 text-sm"><span className="text-white/40 flex-shrink-0">•</span>Sandlotz is a venue; we are not part of the transaction. The agreement is between the buyer and seller.</li>
+            <li className="flex gap-3 text-white/80 text-sm"><span className="text-white/40 flex-shrink-0">•</span>All payments are processed securely through Stripe. We never see your card details.</li>
+            <li className="flex gap-3 text-white/80 text-sm">
+              <span className="text-white/40 flex-shrink-0">•</span>
+              Read our{' '}
+              <Link href="/legal/terms" className="text-yellow-400 hover:underline font-semibold">Terms of Service</Link>
+              {' '}for full details.
+            </li>
+          </ul>
+        </div>
+
+        {/* CTA */}
         <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
-          <h2 className="text-3xl font-black text-white mb-4">Ready to List?</h2>
-          <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
-            Create your free account to start buying, selling, and connecting with the Sandlotz athlete community.
-          </p>
+          <h2 className="text-3xl font-black text-white mb-3">Ready to list your first item?</h2>
+          <p className="text-white/70 text-base mb-8">Turn your unused gear into cash or find your next training partner today.</p>
           <Link
-            href="/signup"
+            href="/marketplace"
             className="inline-block bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-bold px-10 py-3.5 rounded-xl text-base transition-all shadow-lg"
           >
-            Create Your Free Account
+            Go to the Marketplace
           </Link>
         </div>
       </div>
