@@ -160,6 +160,7 @@ export default function LogActivityPage() {
   }
 
   function removeImage(idx: number) {
+    URL.revokeObjectURL(imagePreviews[idx])
     setImages(prev => prev.filter((_, i) => i !== idx))
     setImagePreviews(prev => prev.filter((_, i) => i !== idx))
   }
@@ -251,26 +252,77 @@ export default function LogActivityPage() {
   // ── Success screen ────────────────────────────────────────────────────────
   if (earned !== null) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 pt-16">
+      <div className="min-h-screen flex items-center justify-center px-4 pt-16 pb-24">
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-          className="sz-card p-12 max-w-sm w-full text-center"
+          className="sz-card p-8 max-w-sm w-full text-center"
         >
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
             transition={{ delay: 0.15, type: 'spring', stiffness: 400 }}
-            className="text-6xl mb-4">🏆</motion.div>
-          <h2 className="text-3xl font-black mb-2">Activity Logged!</h2>
-          <p className="text-white/50 mb-4">You earned</p>
+            className="text-5xl mb-3">🏆</motion.div>
+          <h2 className="text-2xl font-black mb-1">Activity Logged!</h2>
+          <p className="text-white/50 text-sm mb-3">You earned</p>
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             className="text-6xl font-black text-brand-yellow mb-1">+{earned}</motion.p>
-          <p className="text-brand-yellow font-bold mb-2">PlayerPoints</p>
+          <p className="text-brand-yellow font-bold text-sm mb-4">PlayerPoints</p>
+
+          {/* Score breakdown */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+            className="bg-white/5 rounded-2xl p-4 mb-4 text-left space-y-1.5">
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-2">Score Breakdown</p>
+            <div className="flex justify-between text-xs">
+              <span className="text-white/60">Base (duration × intensity × sport)</span>
+              <span className="font-bold text-white">+{breakdown.basePoints}</span>
+            </div>
+            {breakdown.distanceBonus > 0 && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Distance bonus</span>
+                <span className="font-bold text-white">+{breakdown.distanceBonus}</span>
+              </div>
+            )}
+            {breakdown.elevationBonus > 0 && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Elevation bonus</span>
+                <span className="font-bold text-white">+{breakdown.elevationBonus}</span>
+              </div>
+            )}
+            {breakdown.caloriesBonus > 0 && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Calories bonus</span>
+                <span className="font-bold text-white">+{breakdown.caloriesBonus}</span>
+              </div>
+            )}
+            {breakdown.hrMultiplier > 1 && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">HR zone boost</span>
+                <span className="font-bold text-green-400">×{breakdown.hrMultiplier.toFixed(2)}</span>
+              </div>
+            )}
+            {breakdown.sourceVerified && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Verified source</span>
+                <span className="font-bold text-green-400">×1.05</span>
+              </div>
+            )}
+            {breakdown.durationDamped && (
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Ultra-duration damper</span>
+                <span className="font-bold text-orange-400">×0.85</span>
+              </div>
+            )}
+            <div className="border-t border-white/10 pt-1.5 flex justify-between text-xs font-black">
+              <span className="text-white">Total</span>
+              <span className="text-brand-yellow">+{breakdown.total} pts</span>
+            </div>
+          </motion.div>
+
           {importedFrom && (
-            <p className="text-white/40 text-xs mb-4">Imported from {importedFrom} · Verified source bonus applied</p>
+            <p className="text-white/40 text-xs mb-3">Imported from {importedFrom}</p>
           )}
           {imagePreviews.length > 0 && (
-            <div className="flex gap-2 justify-center mb-6">
+            <div className="flex gap-2 justify-center mb-4">
               {imagePreviews.slice(0, 3).map((src, i) => (
                 <div key={i} className="w-14 h-14 rounded-xl overflow-hidden border border-white/10">
                   <Image src={src} alt="activity" width={56} height={56} className="object-cover w-full h-full" unoptimized />

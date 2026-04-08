@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,9 +12,9 @@ import { ActivityCardSkeleton, StatCardSkeleton } from '@/components/ui/Skeleton
 import {
   Zap, Trophy, Clock, Ruler, Flame, ChevronRight,
   MapPin, Plus, Megaphone, Gamepad2, Heart, Bookmark,
-  TrendingUp, Users, Star,
+  TrendingUp, Users, Star, Bot, RefreshCw, Lightbulb,
 } from 'lucide-react'
-import { SPORT_OPTIONS, INTENSITY_LABELS } from '@/lib/sandlotzScore'
+import { SPORT_OPTIONS, INTENSITY_LABELS, getRankTier } from '@/lib/sandlotzScore'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,13 +62,6 @@ const MOCK_ATHLETES = [
   { id: '4', name: 'Gabby D.',   tier: 'Athlete',sport: '🏋️', score: 1200,  avatar: 'G' },
 ]
 
-const TIER_COLORS: Record<string, string> = {
-  Legend:  'text-yellow-400 border-yellow-400/40 bg-yellow-400/10',
-  Elite:   'text-purple-300 border-purple-300/40 bg-purple-300/10',
-  Pro:     'text-blue-400   border-blue-400/40   bg-blue-400/10',
-  Athlete: 'text-green-400  border-green-400/40  bg-green-400/10',
-  Rookie:  'text-gray-400   border-gray-400/40   bg-gray-400/10',
-}
 
 const FADE_UP = {
   hidden: { opacity: 0, y: 18 },
@@ -134,6 +127,11 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [fetching,   setFetching]   = useState(true)
 
+  // AI Coach state
+  const [aiInsight,   setAiInsight]   = useState<string | null>(null)
+  const [aiTips,      setAiTips]      = useState<string[]>([])
+  const [aiLoading,   setAiLoading]   = useState(false)
+
   // Swipe refs for athlete/event carousels
   const athleteRef = useRef<HTMLDivElement>(null)
   const eventRef   = useRef<HTMLDivElement>(null)
@@ -148,6 +146,32 @@ export default function DashboardPage() {
       .then(setActivities)
       .finally(() => setFetching(false))
   }, [user])
+
+  const fetchAiCoach = useCallback(async (acts: Activity[]) => {
+    if (!profile) return
+    setAiLoading(true)
+    try {
+      const res = await fetch('/api/ai-coach', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          activities: acts.slice(0, 10),
+          totalScore: profile.totalScore,
+          tier:       getRankTier(profile.totalScore).label,
+        }),
+      })
+      const data = await res.json()
+      if (data.insight) { setAiInsight(data.insight); setAiTips(data.tips ?? []) }
+    } catch { /* silent */ }
+    finally  { setAiLoading(false) }
+  }, [profile])
+
+  // Auto-fetch AI coach once activities load
+  useEffect(() => {
+    if (!fetching && activities.length >= 0 && aiInsight === null) {
+      fetchAiCoach(activities)
+    }
+  }, [fetching, activities, aiInsight, fetchAiCoach])
 
   if (loading || !user) {
     return (
@@ -183,13 +207,52 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* ── Score strip ───────────────────────────────────────────────────── */}
-      <motion.div custom={1} variants={FADE_UP} initial="hidden" animate="show" className="mb-6">
+      <motion.div custom={1} variants={FADE_UP} initial="hidden" animate="show" className="mb-4">
         <ScoreDisplay score={profile?.totalScore ?? 0} large />
+      </motion.div>
+
+      {/* ── AI Coach card ─────────────────────────────────────────────────── */}
+      <motion.div custom={2} variants={FADE_UP} initial="hidden" animate="show" className="mb-6">
+        <div className="sz-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-brand-yellow" />
+              <span className="text-sm font-black text-white">AI Coach</span>
+              <span className="text-[10px] bg-brand-yellow/20 text-brand-yellow px-2 py-0.5 rounded-full font-bold">BETA</span>
+            </div>
+            <button onClick={() => fetchAiCoach(activities)} disabled={aiLoading}
+              className="text-white/30 hover:text-white transition-colors">
+              <RefreshCw className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          <div className="p-4">
+            {aiLoading ? (
+              <div className="space-y-2">
+                <div className="h-4 bg-white/5 rounded-full animate-pulse w-4/5" />
+                <div className="h-3 bg-white/5 rounded-full animate-pulse w-3/5" />
+              </div>
+            ) : aiInsight ? (
+              <div className="space-y-3">
+                <p className="text-white font-semibold text-sm leading-snug">{aiInsight}</p>
+                <div className="space-y-1.5">
+                  {aiTips.map((tip, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <Lightbulb className="w-3.5 h-3.5 text-brand-yellow mt-0.5 flex-shrink-0" />
+                      <p className="text-white/60 text-xs leading-snug">{tip}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-white/30 text-sm">Log activities to unlock AI coaching.</p>
+            )}
+          </div>
+        </div>
       </motion.div>
 
       {/* ── Post / Promote / Play CTA row ─────────────────────────────────── */}
       <motion.div
-        custom={2} variants={FADE_UP} initial="hidden" animate="show"
+        custom={3} variants={FADE_UP} initial="hidden" animate="show"
         className="grid grid-cols-3 gap-3 mb-8"
       >
         {[
@@ -213,7 +276,7 @@ export default function DashboardPage() {
 
       {/* ── Quick stats strip ─────────────────────────────────────────────── */}
       <motion.div
-        custom={3} variants={FADE_UP} initial="hidden" animate="show"
+        custom={4} variants={FADE_UP} initial="hidden" animate="show"
         className="grid grid-cols-4 gap-2 mb-8"
       >
         {fetching
@@ -234,7 +297,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* ── Live Nearby Activity Feed ──────────────────────────────────────── */}
-      <motion.section custom={4} variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
+      <motion.section custom={5} variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -285,7 +348,7 @@ export default function DashboardPage() {
       </motion.section>
 
       {/* ── Swipeable Top Athletes ─────────────────────────────────────────── */}
-      <motion.section custom={5} variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
+      <motion.section custom={6} variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-brand-yellow" />
@@ -315,7 +378,7 @@ export default function DashboardPage() {
                 {athlete.avatar}
               </div>
               <p className="font-bold text-sm truncate">{athlete.name}</p>
-              <div className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${TIER_COLORS[athlete.tier]}`}>
+              <div className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${getRankTier(athlete.score).badgeClass}`}>
                 <Star className="w-2.5 h-2.5" />
                 {athlete.tier}
               </div>
@@ -341,7 +404,7 @@ export default function DashboardPage() {
       </motion.section>
 
       {/* ── Swipeable Events / Challenges ─────────────────────────────────── */}
-      <motion.section custom={6} variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
+      <motion.section custom={7} variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-brand-yellow" />
@@ -378,7 +441,7 @@ export default function DashboardPage() {
       </motion.section>
 
       {/* ── Your Recent Activity ───────────────────────────────────────────── */}
-      <motion.section custom={7} variants={FADE_UP} initial="hidden" animate="show">
+      <motion.section custom={8} variants={FADE_UP} initial="hidden" animate="show">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-black text-base">Your Recent Activity</h2>
           {activities.length > 5 && (

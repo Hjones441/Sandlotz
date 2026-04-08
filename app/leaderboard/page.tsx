@@ -12,8 +12,8 @@ const CITIES = ['New York', 'Columbus', 'Cleveland', 'Cincinnati', 'Dayton', 'To
 
 const FAQ_ITEMS = [
   {
-    q: 'How is my SweatScore calculated?',
-    a: 'Your SweatScore is based on calories burned, activity intensity, sport multiplier, heart rate zone, verified fitness data source, and elevation gain. See our full scoring policy for the exact formula.',
+    q: 'How is my Sandlotz Score™ calculated?',
+    a: 'Your Sandlotz Score™ is based on activity duration, sport multiplier, intensity level, heart rate zone, verified fitness data source, distance, elevation gain, and calories burned. See our full scoring guide for the exact formula.',
   },
   {
     q: 'Why did my rank change overnight?',

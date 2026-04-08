@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { getRankTier, SPORT_OPTIONS, formatScore } from '@/lib/sandlotzScore'
+import { getRankTier, getTierProgress, SPORT_OPTIONS, formatScore } from '@/lib/sandlotzScore'
 import NextLink from 'next/link'
 import {
   Activity,
@@ -86,15 +86,7 @@ export default function ProfilePage() {
     ? profile.displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?'
 
-  // Tier progression mock data
-  const tierOrder = ['Rookie', 'Athlete', 'Pro', 'Elite', 'Legend']
-  const currentTierIdx = tierOrder.indexOf(tier.label)
-  const nextTier = tierOrder[Math.min(currentTierIdx + 1, tierOrder.length - 1)]
-  const tierThresholds: Record<string, number> = { Rookie: 0, Athlete: 500, Pro: 2000, Elite: 5000, Legend: 10000 }
-  const tierMax: Record<string, number> = { Rookie: 500, Athlete: 2000, Pro: 5000, Elite: 10000, Legend: 10000 }
-  const tierMin = tierThresholds[tier.label] ?? 0
-  const tierMaxVal = tierMax[tier.label] ?? 10000
-  const progress = Math.min(100, Math.round(((profile.totalScore - tierMin) / (tierMaxVal - tierMin)) * 100))
+  const { pct: progress, nextLabel: nextTier, pointsToNext } = getTierProgress(profile.totalScore)
 
   const sportLabel = SPORT_OPTIONS.find(s => s.value === profile.sport)?.label ?? 'Other'
   const sportEmoji = SPORT_OPTIONS.find(s => s.value === profile.sport)?.emoji ?? '🏅'
@@ -184,7 +176,7 @@ export default function ProfilePage() {
             <div className="h-2 rounded-full bg-white/10 mb-3">
               <div className="h-2 rounded-full bg-yellow-400 transition-all" style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-white/40 text-xs">Keep logging activities to increase your SweatScore and level up!</p>
+            <p className="text-white/40 text-xs">{pointsToNext > 0 ? `${pointsToNext.toLocaleString()} pts to ${nextTier}` : 'Max tier reached!'} · Keep logging to level up.</p>
           </div>
 
           {/* Your Quests */}

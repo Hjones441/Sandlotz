@@ -219,10 +219,24 @@ export function formatScore(score: number): string {
   return score.toString()
 }
 
-export function getRankTier(score: number): { label: string; color: string } {
-  if (score >= 10000) return { label: 'Legend',   color: 'text-yellow-400' }
-  if (score >= 5000)  return { label: 'Elite',    color: 'text-purple-300' }
-  if (score >= 2000)  return { label: 'Pro',      color: 'text-blue-400'   }
-  if (score >= 500)   return { label: 'Athlete',  color: 'text-green-400'  }
-  return               { label: 'Rookie',   color: 'text-gray-400'   }
+export const TIER_THRESHOLDS: { label: string; min: number; color: string; badgeClass: string }[] = [
+  { label: 'Legend',  min: 10000, color: 'text-yellow-400', badgeClass: 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10' },
+  { label: 'Elite',   min: 5000,  color: 'text-purple-300', badgeClass: 'text-purple-300 border-purple-300/40 bg-purple-300/10' },
+  { label: 'Pro',     min: 2000,  color: 'text-blue-400',   badgeClass: 'text-blue-400 border-blue-400/40 bg-blue-400/10'       },
+  { label: 'Athlete', min: 500,   color: 'text-green-400',  badgeClass: 'text-green-400 border-green-400/40 bg-green-400/10'    },
+  { label: 'Rookie',  min: 0,     color: 'text-gray-400',   badgeClass: 'text-gray-400 border-gray-400/40 bg-gray-400/10'       },
+]
+
+export function getRankTier(score: number): { label: string; color: string; badgeClass: string; min: number } {
+  return TIER_THRESHOLDS.find(t => score >= t.min) ?? TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1]
+}
+
+/** Returns [progressPct, nextTierLabel, pointsToNext] for the tier progress bar */
+export function getTierProgress(score: number): { pct: number; nextLabel: string; pointsToNext: number } {
+  const idx = TIER_THRESHOLDS.findIndex(t => score >= t.min)
+  const current = TIER_THRESHOLDS[idx]
+  const next    = TIER_THRESHOLDS[idx - 1]
+  if (!next) return { pct: 100, nextLabel: current.label, pointsToNext: 0 }
+  const pct = Math.min(100, Math.round(((score - current.min) / (next.min - current.min)) * 100))
+  return { pct, nextLabel: next.label, pointsToNext: next.min - score }
 }

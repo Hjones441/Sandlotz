@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Trophy, Zap, Gift, Users, TrendingUp, Star } from 'lucide-react'
+import { Trophy, Zap, Gift, Users, TrendingUp, Star, HeartPulse, Mountain, Flame, CheckCircle2 } from 'lucide-react'
 
 export default function HomePage() {
   return (
@@ -114,6 +114,55 @@ export default function HomePage() {
                 <p className="text-white/50 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Sandlotz Score™ explainer ─────────────────────────────────────────── */}
+      <section className="px-4 py-20 bg-brand-purple-dark">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-brand-yellow/10 border border-brand-yellow/20 rounded-full px-4 py-1.5 mb-4">
+              <Trophy className="w-4 h-4 text-brand-yellow" />
+              <span className="text-brand-yellow text-sm font-bold">Sandlotz Score™</span>
+            </div>
+            <h2 className="text-3xl font-black mb-2">How Your Score Is Calculated</h2>
+            <p className="text-white/50 max-w-lg mx-auto">Every workout earns PlayerPoints. Connect a fitness app for a verified bonus.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[
+              { icon: <Zap className="w-5 h-5" />,        label: 'Duration × Intensity',  desc: 'Every minute counts. Harder effort = higher multiplier.',      color: 'text-yellow-400' },
+              { icon: <TrendingUp className="w-5 h-5" />, label: 'Sport Multiplier',       desc: 'Swimming ×1.5, Running ×1.2, HIIT ×1.3, Cycling ×0.8…',      color: 'text-blue-400'   },
+              { icon: <HeartPulse className="w-5 h-5" />, label: 'HR Zone Boost',          desc: 'Zone 5 (170+ bpm) adds a 30% multiplier to your base score.', color: 'text-red-400'    },
+              { icon: <CheckCircle2 className="w-5 h-5" />, label: 'Verified Source +5%', desc: 'Connect Strava, Garmin, Whoop & more for an automatic bonus.', color: 'text-green-400'  },
+            ].map(f => (
+              <div key={f.label} className="sz-card p-5">
+                <div className={`${f.color} mb-3`}>{f.icon}</div>
+                <p className="font-black text-sm mb-1">{f.label}</p>
+                <p className="text-white/50 text-xs leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="sz-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <p className="text-white/50 text-xs uppercase tracking-widest mb-1">Bonus Multipliers</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { icon: <Mountain className="w-3.5 h-3.5" />, label: '+1pt per 100m elevation' },
+                  { icon: <Flame className="w-3.5 h-3.5" />,    label: '+1pt per 50 kcal' },
+                  { icon: <Star className="w-3.5 h-3.5" />,     label: 'Distance bonus ×sport' },
+                ].map(b => (
+                  <span key={b.label} className="flex items-center gap-1.5 text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-white/70">
+                    <span className="text-brand-yellow">{b.icon}</span>{b.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <Link href="/about/scoring-verification" className="btn-ghost whitespace-nowrap text-sm">
+              Full Formula →
+            </Link>
           </div>
         </div>
       </section>
