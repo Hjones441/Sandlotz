@@ -25,11 +25,16 @@ export default function LoginPage() {
       router.push('/dashboard')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign-in failed. Check your email and password.'
-      if (message.includes('Please verify your email')) {
-        setError(message + ' Need a new link? Contact support.')
-      } else {
-        setError(message)
+      if (message === 'UNVERIFIED_EMAIL') {
+        // User is still signed in — send them to verify-email where they can resend
+        router.push('/verify-email')
+        return
       }
+      setError(
+        message.includes('invalid-credential') || message.includes('wrong-password') || message.includes('user-not-found')
+          ? 'Incorrect email or password. Please try again.'
+          : message
+      )
     } finally {
       setLoading(false)
     }

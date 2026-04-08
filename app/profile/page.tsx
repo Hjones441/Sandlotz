@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { getRankTier, SPORT_OPTIONS, formatScore } from '@/lib/sandlotzScore'
+import NextLink from 'next/link'
 import {
   Activity,
   Trophy,
@@ -18,7 +19,7 @@ import {
   Share2,
   Settings,
   LogOut,
-  Link,
+  ExternalLink,
   Wind,
   HeartPulse,
   MapPin,
@@ -54,7 +55,19 @@ const BAR_DAYS = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa']
 export default function ProfilePage() {
   const { user, profile, loading, logOut } = useAuth()
   const router = useRouter()
-  const [questTab, setQuestTab] = useState<QuestTab>('Daily')
+  const [questTab,  setQuestTab]  = useState<QuestTab>('Daily')
+  const [shareMsg,  setShareMsg]  = useState('')
+
+  function handleShare() {
+    const url = window.location.href
+    if (navigator.share) {
+      navigator.share({ title: 'My Sandlotz Profile', url })
+    } else {
+      navigator.clipboard.writeText(url)
+      setShareMsg('Link copied!')
+      setTimeout(() => setShareMsg(''), 2000)
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
@@ -97,9 +110,12 @@ export default function ProfilePage() {
           <div className="sz-card p-6 relative">
             {/* Top-right icons */}
             <div className="absolute top-4 right-4 flex items-center gap-3">
-              <button className="text-white/50 hover:text-white transition-colors"><Share2 className="w-5 h-5" /></button>
-              <button className="text-white/50 hover:text-white transition-colors"><Settings className="w-5 h-5" /></button>
-              <button onClick={() => logOut()} className="text-white/50 hover:text-white transition-colors"><LogOut className="w-5 h-5" /></button>
+              <button onClick={handleShare} title={shareMsg || 'Share profile'} className="text-white/50 hover:text-white transition-colors relative">
+                <Share2 className="w-5 h-5" />
+                {shareMsg && <span className="absolute -bottom-6 -right-2 text-xs text-green-400 whitespace-nowrap">{shareMsg}</span>}
+              </button>
+              <NextLink href="/settings" title="Settings" className="text-white/50 hover:text-white transition-colors"><Settings className="w-5 h-5" /></NextLink>
+              <button onClick={() => logOut()} title="Sign out" className="text-white/50 hover:text-white transition-colors"><LogOut className="w-5 h-5" /></button>
             </div>
 
             {/* Avatar + Name */}
@@ -218,7 +234,7 @@ export default function ProfilePage() {
                       </div>
                     </>
                   ) : (
-                    <button className="btn-primary !py-1.5 !px-4 text-xs w-full mt-1">Start Quest</button>
+                    <button disabled title="Quest tracking coming soon" className="btn-primary !py-1.5 !px-4 text-xs w-full mt-1 opacity-50 cursor-not-allowed">Start Quest</button>
                   )}
                 </div>
               ))}
@@ -246,7 +262,7 @@ export default function ProfilePage() {
                 <ShoppingCart className="w-5 h-5 text-white/70" />
                 <span className="font-bold text-white">Featured Items For You</span>
               </div>
-              <button className="btn-ghost !py-1.5 !px-3 text-xs">View Marketplace</button>
+              <NextLink href="/marketplace" className="btn-ghost !py-1.5 !px-3 text-xs">View Marketplace</NextLink>
             </div>
             <p className="text-white/40 text-sm mb-4">Promoted and popular items related to your interests.</p>
 
@@ -265,7 +281,7 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap gap-1 justify-center mb-3">
                   <span className="bg-white/10 text-white text-xs px-2 py-0.5 rounded-full">🏀 Basketball</span>
                 </div>
-                <button className="btn-primary w-full !py-1.5 text-xs">Connect</button>
+                <button disabled title="Player connections coming soon" className="btn-primary w-full !py-1.5 text-xs opacity-50 cursor-not-allowed">Connect</button>
               </div>
 
               {/* Gear card */}
@@ -280,7 +296,7 @@ export default function ProfilePage() {
                 <p className="text-white/40 text-xs mb-2">Official size indoor game ball.</p>
                 <p className="text-white/40 text-xs mb-2">New York, NY</p>
                 <p className="text-yellow-400 font-black mb-2">$45</p>
-                <button className="btn-primary w-full !py-1.5 text-xs">View Item</button>
+                <NextLink href="/marketplace" className="btn-primary w-full !py-1.5 text-xs text-center block">View Item</NextLink>
               </div>
             </div>
           </div>
@@ -292,7 +308,7 @@ export default function ProfilePage() {
                 <Gift className="w-5 h-5 text-white/70" />
                 <span className="font-bold text-white">Featured Perks For You</span>
               </div>
-              <button className="btn-ghost !py-1.5 !px-3 text-xs">View All Perks</button>
+              <NextLink href="/perks" className="btn-ghost !py-1.5 !px-3 text-xs">View All Perks</NextLink>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -359,8 +375,8 @@ export default function ProfilePage() {
               ))}
             </div>
 
-            <button className="btn-ghost w-full flex items-center justify-center gap-2 text-sm">
-              <Link className="w-4 h-4" />
+            <button disabled title="Device sync coming soon" className="btn-ghost w-full flex items-center justify-center gap-2 text-sm opacity-50 cursor-not-allowed">
+              <ExternalLink className="w-4 h-4" />
               Link Device
             </button>
           </div>
@@ -397,7 +413,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <button className="btn-ghost w-full text-sm">View Leaderboards</button>
+            <NextLink href="/leaderboard" className="btn-ghost w-full text-sm text-center block">View Leaderboards</NextLink>
           </div>
 
           {/* My Badges & Achievements */}
@@ -428,7 +444,7 @@ export default function ProfilePage() {
                   <p className="font-bold text-white text-sm">Marathon Finisher</p>
                   <p className="text-white/50 text-xs">Completed a full marathon.</p>
                 </div>
-                <button className="shrink-0 btn-ghost !py-0.5 !px-2 text-xs">Verify</button>
+                <button disabled title="Badge verification coming soon" className="shrink-0 btn-ghost !py-0.5 !px-2 text-xs opacity-50 cursor-not-allowed">Verify</button>
               </div>
 
               {/* Badge 3 */}

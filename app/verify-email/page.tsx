@@ -24,6 +24,26 @@ export default function VerifyEmailPage() {
     }
   }
 
+  // Not signed in — can't resend without a user object
+  if (!user) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4 pt-16">
+        <div className="max-w-md w-full sz-card p-8 text-center">
+          <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Mail className="w-8 h-8 text-yellow-400" />
+          </div>
+          <h1 className="text-2xl font-black text-white mb-2">Verify Your Email</h1>
+          <p className="text-white/60 text-sm leading-relaxed mb-6">
+            Sign in with your email and password to trigger a new verification email.
+          </p>
+          <Link href="/login" className="btn-primary w-full flex items-center justify-center gap-2">
+            Go to Login
+          </Link>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center px-4 pt-16">
       <div className="max-w-md w-full sz-card p-8 text-center">
@@ -36,7 +56,7 @@ export default function VerifyEmailPage() {
         <h1 className="text-2xl font-black text-white mb-2">Check Your Email</h1>
         <p className="text-white/60 text-sm leading-relaxed mb-6">
           We sent a verification link to{' '}
-          <span className="text-white font-semibold">{user?.email ?? 'your email'}</span>.
+          <span className="text-white font-semibold">{user.email}</span>.
           Click the link in that email to activate your account.
         </p>
 

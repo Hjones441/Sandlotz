@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     const cred = await signInWithEmailAndPassword(auth, email, password)
     if (!cred.user.emailVerified) {
-      await signOut(auth)
-      throw new Error('Please verify your email before signing in. Check your inbox for a verification link.')
+      // Keep user signed in so they can use resendVerification() from /verify-email
+      throw new Error('UNVERIFIED_EMAIL')
     }
     await loadProfile(cred.user)
   }
