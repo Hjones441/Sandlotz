@@ -109,7 +109,7 @@ const PRODUCTS = [
 
 export default function ProductsPage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-4xl mx-auto px-6">
 
         <div className="text-center mb-14">
@@ -124,7 +124,7 @@ export default function ProductsPage() {
           {PRODUCTS.map(({ icon: Icon, name, tag, description, cta }) => (
             <div
               key={name}
-              className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 p-6 flex flex-col gap-4"
+              className="rounded-2xl border border-white/10 bg-white/[0.08] p-6 flex flex-col gap-4"
             >
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 p-2.5 bg-yellow-400/10 rounded-xl">
@@ -164,7 +164,7 @@ export default function ProductsPage() {
                 className={`rounded-2xl p-6 flex flex-col gap-4 ${
                   highlight
                     ? 'bg-purple-600/60 border-2 border-yellow-400/60 shadow-xl'
-                    : 'bg-[#6D28D9]/40 border border-purple-400/30'
+                    : 'bg-white/10 border border-white/10'
                 }`}
               >
                 <div className="flex flex-col items-center text-center gap-3">
@@ -208,7 +208,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <div className="mt-10 rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">Ready to Play?</h2>
           <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
             Start free with the Rookie tier. Upgrade anytime as your hustle grows.

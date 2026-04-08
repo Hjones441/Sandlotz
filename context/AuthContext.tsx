@@ -15,6 +15,7 @@ import {
   signInWithPopup,
   signOut,
   updateProfile,
+  sendEmailVerification,
 } from 'firebase/auth'
 import { auth, googleProvider } from '@/lib/firebase'
 import { createUserProfile, getUserProfile, UserProfile } from '@/lib/firestore'
@@ -28,6 +29,7 @@ interface AuthContextValue {
   signInGoogle:() => Promise<void>
   logOut:      () => Promise<void>
   refreshProfile: () => Promise<void>
+  resendVerification: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(email: string, password: string, displayName: string) {
     const cred = await createUserWithEmailAndPassword(auth, email, password)
+    await sendEmailVerification(cred.user)
     await updateProfile(cred.user, { displayName })
     await createUserProfile(cred.user.uid, {
       displayName,
@@ -68,6 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const cred = await signInWithEmailAndPassword(auth, email, password)
+    if (!cred.user.emailVerified) {
+      await signOut(auth)
+      throw new Error('Please verify your email before signing in. Check your inbox for a verification link.')
+    }
     await loadProfile(cred.user)
   }
 
@@ -93,9 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await loadProfile(user)
   }
 
+  async function resendVerification() {
+    if (user) await sendEmailVerification(user)
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, signUp, signIn, signInGoogle, logOut, refreshProfile }}
+      value={{ user, profile, loading, signUp, signIn, signInGoogle, logOut, refreshProfile, resendVerification }}
     >
       {children}
     </AuthContext.Provider>

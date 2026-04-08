@@ -3,11 +3,11 @@ import { Trophy, Gift, ShieldCheck, Info } from 'lucide-react'
 
 export default function LeaderboardsExplainedPage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-6">
 
         {/* Hero */}
-        <div className="rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-10 mb-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-10 mb-12 text-center">
           <h1 className="text-5xl font-black text-white mb-5">Leaderboards, Quests &amp; Challenges</h1>
           <p className="text-white/70 text-lg leading-relaxed">
             Our platform is built on a fair and transparent system that rewards your hustle. Here&apos;s a
@@ -26,7 +26,7 @@ export default function LeaderboardsExplainedPage() {
             Every time you log a verified activity, our Sandlotz Simple-Score™ formula awards you two types of points:
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/20 p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-yellow-400 text-lg">↗</span>
                 <h3 className="text-white font-bold text-lg">SweatScore</h3>
@@ -36,7 +36,7 @@ export default function LeaderboardsExplainedPage() {
                 your progression in your PlayerPath. It never decreases.
               </p>
             </div>
-            <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/20 p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Gift className="w-5 h-5 text-yellow-400" />
                 <h3 className="text-white font-bold text-lg">PlayerPoints</h3>
@@ -83,7 +83,7 @@ export default function LeaderboardsExplainedPage() {
           </ul>
 
           {/* Pro Tip */}
-          <div className="flex gap-3 rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 px-5 py-4">
+          <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
             <Info className="w-5 h-5 text-white/50 flex-shrink-0 mt-0.5" />
             <p className="text-white/70 text-sm leading-relaxed">
               <span className="font-bold text-white">Pro Tip!</span>{' '}
@@ -94,7 +94,7 @@ export default function LeaderboardsExplainedPage() {
         </div>
 
         {/* Technical details CTA */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-10 text-center mb-8">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-10 text-center mb-8">
           <h2 className="text-2xl font-black text-white mb-3">Want the technical details?</h2>
           <p className="text-white/70 text-sm leading-relaxed max-w-lg mx-auto mb-6">
             For a deep dive into our scoring formula, multipliers, and anti-cheat measures, check out our
@@ -108,7 +108,7 @@ export default function LeaderboardsExplainedPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">Ready to Climb?</h2>
           <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
             Log your first activity and claim your spot on the leaderboard today.

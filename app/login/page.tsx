@@ -24,7 +24,12 @@ export default function LoginPage() {
       await signIn(email, password)
       router.push('/dashboard')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Sign-in failed. Check your email and password.')
+      const message = err instanceof Error ? err.message : 'Sign-in failed. Check your email and password.'
+      if (message.includes('Please verify your email')) {
+        setError(message + ' Need a new link? Contact support.')
+      } else {
+        setError(message)
+      }
     } finally {
       setLoading(false)
     }

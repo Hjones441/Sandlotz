@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, CheckSquare, ShoppingCart, MapPin, BarChart2, Send, Lock, Info } from 'lucide-react'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { TrendingUp, CheckSquare, ShoppingCart, MapPin, BarChart2, Send, Lock, Info, Loader2 } from 'lucide-react'
 
 const WHY_ITEMS = [
   { icon: TrendingUp,   title: 'Real ROI',            body: 'Pay-for-performance rewards (only pay when users act).' },
@@ -48,7 +50,7 @@ const TIERS = [
     color: 'text-orange-400',
     borderColor: 'border-orange-400/40',
     features: [
-      'White-Label Challenge under your brand\'s name',
+      "White-Label Challenge under your brand's name",
       'Custom Data Dashboard with monthly insights',
       'Co-Branded Assets and social toolkits',
       'Content Integration (e.g., athlete stories)',
@@ -71,14 +73,53 @@ const BUDGET_OPTIONS = [
 export default function PartnershipPage() {
   const [partnerType, setPartnerType] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitted(true)
+  const [fields, setFields] = useState({
+    name: '', company: '', email: '', website: '',
+    goal: '', budget: '', referral: '', notes: '',
+  })
+
+  function set(key: keyof typeof fields) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      setFields(prev => ({ ...prev, [key]: e.target.value }))
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    setError('')
+
+    const payload = { ...fields, partnerType, submittedAt: new Date().toISOString() }
+
+    try {
+      // 1. Save to Firestore
+      await addDoc(collection(db, 'partnershipInquiries'), {
+        ...payload,
+        createdAt: serverTimestamp(),
+      })
+
+      // 2. Send email notification
+      await fetch('/api/partnership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      setSubmitted(true)
+    } catch (err) {
+      console.error(err)
+      setError('Something went wrong. Please try again or email partnerships@sandlotz.com directly.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60 transition-colors'
+
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-4xl mx-auto px-6">
 
         {/* Hero */}
@@ -92,9 +133,9 @@ export default function PartnershipPage() {
         </div>
 
         {/* Why Sandlotz */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 p-8 mb-12">
+        <div className="sz-card p-8 mb-12">
           <h2 className="text-2xl font-bold text-white mb-2">Why Sandlotz?</h2>
-          <hr className="border-white/20 mb-6" />
+          <hr className="border-white/10 mb-6" />
           <p className="text-white/80 text-sm leading-relaxed mb-4">
             Sandlotz transforms verified physical activity into a digital rewards economy. Our users earn
             PlayerPoints for fitness efforts — which they can redeem for perks, promote items, and level
@@ -116,13 +157,13 @@ export default function PartnershipPage() {
         {/* Partnership Tiers */}
         <div className="mb-14">
           <h2 className="text-2xl font-bold text-white mb-2">Partnership Tiers</h2>
-          <hr className="border-white/20 mb-4" />
+          <hr className="border-white/10 mb-4" />
           <p className="text-white/70 text-sm mb-8">
-            We offer flexible tracks for brands, operators, and investors to achieve their goals. Find the tier that best fits your needs.
+            We offer flexible tracks for brands, operators, and investors to achieve their goals.
           </p>
           <div className="grid sm:grid-cols-3 gap-5">
             {TIERS.map(tier => (
-              <div key={tier.name} className={`rounded-2xl border ${tier.borderColor} bg-[#6D28D9]/30 p-5 flex flex-col`}>
+              <div key={tier.name} className={`rounded-2xl border ${tier.borderColor} bg-white/5 p-5 flex flex-col`}>
                 <h3 className={`text-lg font-black mb-1 ${tier.color}`}>{tier.name}</h3>
                 <div className="text-3xl font-black text-white mb-2">{tier.price}</div>
                 <p className="text-white/70 text-xs leading-snug mb-4">{tier.tagline}</p>
@@ -141,7 +182,7 @@ export default function PartnershipPage() {
         </div>
 
         {/* Interest Form */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 p-8">
+        <div className="sz-card p-8">
           {submitted ? (
             <div className="text-center py-10">
               <div className="text-5xl mb-4">🎉</div>
@@ -161,11 +202,11 @@ export default function PartnershipPage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-white text-sm font-semibold mb-2">Name</label>
-                    <input required className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60" placeholder="Your full name" />
+                    <input required value={fields.name} onChange={set('name')} className={inputClass} placeholder="Your full name" />
                   </div>
                   <div>
                     <label className="block text-white text-sm font-semibold mb-2">Company / Organization</label>
-                    <input className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60" placeholder="Your company name" />
+                    <input value={fields.company} onChange={set('company')} className={inputClass} placeholder="Your company name" />
                   </div>
                 </div>
 
@@ -173,11 +214,11 @@ export default function PartnershipPage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-white text-sm font-semibold mb-2">Email Address</label>
-                    <input required type="email" className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60" placeholder="you@example.com" />
+                    <input required type="email" value={fields.email} onChange={set('email')} className={inputClass} placeholder="you@example.com" />
                   </div>
                   <div>
                     <label className="block text-white text-sm font-semibold mb-2">Website or LinkedIn</label>
-                    <input className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60" placeholder="https://" />
+                    <input value={fields.website} onChange={set('website')} className={inputClass} placeholder="https://" />
                   </div>
                 </div>
 
@@ -193,7 +234,7 @@ export default function PartnershipPage() {
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all text-left ${
                           partnerType === type
                             ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
-                            : 'border-purple-400/30 bg-purple-800/20 text-white/70 hover:border-purple-400/60'
+                            : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
                         }`}
                       >
                         <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${partnerType === type ? 'border-yellow-400 bg-yellow-400' : 'border-white/40'}`} />
@@ -206,49 +247,46 @@ export default function PartnershipPage() {
                 {/* Goal */}
                 <div>
                   <label className="block text-white text-sm font-semibold mb-2">Your Goal or Use Case</label>
-                  <textarea rows={4} className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60 resize-none" placeholder="What do you want out of a partnership?" />
+                  <textarea rows={4} value={fields.goal} onChange={set('goal')} className={inputClass + ' resize-none'} placeholder="What do you want out of a partnership?" />
                 </div>
 
                 {/* Budget */}
                 <div>
                   <label className="block text-white text-sm font-semibold mb-2">Estimated Budget or Interest Level</label>
-                  <select className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white/70 text-sm focus:outline-none focus:border-yellow-400/60 appearance-none">
+                  <select value={fields.budget} onChange={set('budget')} className={inputClass + ' appearance-none'}>
                     <option value="">Select a range</option>
-                    {BUDGET_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    {BUDGET_OPTIONS.map(o => <option key={o} value={o} className="bg-[#1E1040]">{o}</option>)}
                   </select>
                 </div>
 
-                {/* File upload */}
-                <div>
-                  <label className="block text-white text-sm font-semibold mb-2">Upload Deck or Pitch <span className="text-white/40 font-normal">(optional)</span></label>
-                  <div className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-sm">
-                    <input type="file" accept=".pdf,.ppt,.pptx,.key" className="text-white/60 w-full file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-yellow-400/20 file:text-yellow-400 file:text-xs file:font-semibold" />
-                  </div>
-                </div>
-
-                {/* How did you hear */}
+                {/* Referral */}
                 <div>
                   <label className="block text-white text-sm font-semibold mb-2">How did you hear about Sandlotz?</label>
-                  <input className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60" placeholder="Social media, referral, event..." />
+                  <input value={fields.referral} onChange={set('referral')} className={inputClass} placeholder="Social media, referral, event..." />
                 </div>
 
                 {/* Additional notes */}
                 <div>
                   <label className="block text-white text-sm font-semibold mb-2">Additional Notes or Questions</label>
-                  <textarea rows={4} className="w-full bg-purple-800/40 border border-purple-400/30 rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-yellow-400/60 resize-none" placeholder="Anything else you'd like us to know..." />
+                  <textarea rows={4} value={fields.notes} onChange={set('notes')} className={inputClass + ' resize-none'} placeholder="Anything else you'd like us to know..." />
                 </div>
+
+                {error && (
+                  <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">{error}</p>
+                )}
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-black px-8 py-4 rounded-xl text-base transition-all shadow-lg"
+                  disabled={submitting}
+                  className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-60 disabled:cursor-not-allowed text-purple-900 font-black px-8 py-4 rounded-xl text-base transition-all shadow-lg"
                 >
-                  <Send className="w-5 h-5" />
-                  Submit Interest Form
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {submitting ? 'Submitting...' : 'Submit Interest Form'}
                 </button>
               </form>
 
               {/* Data safety note */}
-              <div className="mt-6 flex gap-3 rounded-xl border border-purple-400/20 bg-purple-900/30 p-4">
+              <div className="mt-6 flex gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex gap-1 flex-shrink-0 mt-0.5">
                   <Info className="w-4 h-4 text-white/40" />
                   <Lock className="w-4 h-4 text-white/40" />

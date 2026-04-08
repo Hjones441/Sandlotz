@@ -26,11 +26,11 @@ const BOOST_RULES = [
 
 export default function MarketplaceGuidePage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-6">
 
         {/* Hero */}
-        <div className="rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-10 mb-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-10 mb-12 text-center">
           <h1 className="text-5xl font-black text-white mb-5">Marketplace Guide</h1>
           <p className="text-white/70 text-lg leading-relaxed">
             Your hub for buying, selling, and promoting gear, events, and services. Here&apos;s how to make the most of it.
@@ -74,7 +74,7 @@ export default function MarketplaceGuidePage() {
           </p>
 
           {/* Info callout */}
-          <div className="flex gap-3 rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-5 mb-8">
+          <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 mb-8">
             <Zap className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-white font-bold text-sm mb-1">What does &ldquo;Unlimited Boosts&rdquo; really mean?</p>
@@ -121,7 +121,7 @@ export default function MarketplaceGuidePage() {
         </div>
 
         {/* CTA */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-3">Ready to list your first item?</h2>
           <p className="text-white/70 text-base mb-8">Turn your unused gear into cash or find your next training partner today.</p>
           <Link

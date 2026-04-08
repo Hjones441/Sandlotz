@@ -9,7 +9,7 @@ export function initPostHog() {
     api_host: host,
     capture_pageview: false, // manual in PostHogProvider
     autocapture: true,
-    session_recording: { maskAllInputs: false },
+    session_recording: { maskAllInputs: true },
   })
 }
 

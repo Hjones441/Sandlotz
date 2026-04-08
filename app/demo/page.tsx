@@ -50,7 +50,7 @@ const FEATURES = [
 
 export default function DemoPage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-6">
 
         {/* Header */}
@@ -71,7 +71,7 @@ export default function DemoPage() {
           {DEMO_STEPS.map(({ icon: Icon, step, title, body, cta }) => (
             <div
               key={step}
-              className="flex gap-5 rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-6"
+              className="flex gap-5 rounded-2xl border border-white/10 bg-white/5 p-6"
             >
               <div className="flex-shrink-0 flex flex-col items-center gap-2">
                 <span className="text-xs font-black text-yellow-400/40">{step}</span>
@@ -94,7 +94,7 @@ export default function DemoPage() {
         </div>
 
         {/* Feature checklist */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 p-6 mb-14">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-6 mb-14">
           <h2 className="text-xl font-black text-white mb-4">Everything Included — Free</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             {FEATURES.map(f => (
@@ -107,7 +107,7 @@ export default function DemoPage() {
         </div>
 
         {/* CTA */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">Ready to Play?</h2>
           <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
             Create your free account and start earning points for workouts you&apos;re already doing.

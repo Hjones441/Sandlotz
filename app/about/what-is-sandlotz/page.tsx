@@ -43,7 +43,7 @@ const ECOSYSTEM_ITEMS = [
 
 export default function WhatIsSandlotz() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-6">
 
         {/* Hero */}
@@ -84,7 +84,7 @@ export default function WhatIsSandlotz() {
         </div>
 
         {/* CTA */}
-        <div className="mt-16 rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="mt-16 rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">Ready to Play?</h2>
           <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
             Create your free account to start tracking your activities, earning points, and

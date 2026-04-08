@@ -3,6 +3,7 @@ import './globals.css'
 import Providers from './providers'
 import Navbar from '@/components/layout/Navbar'
 import BottomNav from '@/components/layout/BottomNav'
+import Footer from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
   title:       'Sandlotz — Compete. Earn. Dominate.',
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Navbar />
           <main className="min-h-screen">{children}</main>
+          <Footer />
           <BottomNav />
         </Providers>
       </body>

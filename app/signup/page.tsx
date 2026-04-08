@@ -8,7 +8,7 @@ import { Eye, EyeOff, Chrome } from 'lucide-react'
 import { SPORT_OPTIONS } from '@/lib/sandlotzScore'
 
 export default function SignupPage() {
-  const { signUp, signInGoogle } = useAuth()
+  const { signUp, signInGoogle, resendVerification } = useAuth()
   const router = useRouter()
 
   const [displayName, setDisplayName] = useState('')
@@ -18,15 +18,16 @@ export default function SignupPage() {
   const [showPw,      setShowPw]      = useState(false)
   const [loading,     setLoading]     = useState(false)
   const [error,       setError]       = useState('')
+  const [sent,        setSent]        = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setError('')
     setLoading(true)
     try {
       await signUp(email, password, displayName)
-      router.push('/dashboard')
+      setSent(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign-up failed. Please try again.')
     } finally {
@@ -45,6 +46,30 @@ export default function SignupPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (sent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 pt-16 pb-8">
+        <div className="w-full max-w-md">
+          <div className="sz-card p-8 text-center">
+            <h1 className="text-3xl font-black mb-3">Check Your Email</h1>
+            <p className="text-white/60 text-sm mb-8">
+              We sent a verification link to <span className="text-white font-semibold">{email}</span>. Click it to activate your account.
+            </p>
+            <button
+              onClick={() => resendVerification()}
+              className="btn-primary w-full mb-4"
+            >
+              Resend Email
+            </button>
+            <Link href="/login" className="text-brand-yellow hover:underline text-sm font-semibold">
+              Back to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -105,7 +130,7 @@ export default function SignupPage() {
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder="Min 8 characters"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white
                              placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors"
                 />

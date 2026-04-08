@@ -1,126 +1,306 @@
 'use client'
 
-import Link from 'next/link'
-import { ShoppingCart, Tag, CalendarDays, Dumbbell, Search, SlidersHorizontal } from 'lucide-react'
+import { useState } from 'react'
+import {
+  Search,
+  MapPin,
+  PlusCircle,
+  Tag,
+  ShoppingCart,
+  Users,
+  TrendingUp,
+  CalendarDays,
+  Star,
+  Filter,
+} from 'lucide-react'
 
-const CATEGORIES = [
-  { icon: Tag,          label: 'Gear & Equipment', count: 142 },
-  { icon: CalendarDays, label: 'Events',            count: 38  },
-  { icon: Dumbbell,     label: 'Coaching',          count: 61  },
+const TABS = ['All', 'Gear', 'Events', 'Players', 'Services']
+
+const CHALLENGES = [
+  { title: "Nike's NYC Borough Battle",       timeLeft: '3 days left',  participants: '1,204', progress: 85 },
+  { title: "Garmin's Global Running Day",     timeLeft: '1 day left',   participants: '8,753', progress: 92 },
+  { title: "Wilson's Weekend Warrior Tennis", timeLeft: '2 days left',  participants: '450',   progress: 45 },
 ]
-
-const FEATURED = [
-  { emoji: '👟', title: 'Nike Air Zoom Pegasus 40 — Size 10', type: 'Gear', price: '$95', seller: 'JordanR.', score: 4820, condition: 'Like New' },
-  { emoji: '⚽', title: 'Columbus FC Pickup — Sunday 10am', type: 'Event', price: 'Free', seller: 'MarcusT.', score: 7310, condition: null },
-  { emoji: '🏋️', title: '1-on-1 Strength Coaching — $60/hr',   type: 'Coaching', price: '$60/hr', seller: 'CoachKev', score: 12400, condition: null },
-  { emoji: '🚴', title: 'Trek FX3 Road Bike — 54cm',           type: 'Gear', price: '$450', seller: 'AlexW.',  score: 3190, condition: 'Good' },
-  { emoji: '🏃', title: 'Saturday Morning Run Club — 7am',     type: 'Event', price: 'Free', seller: 'RunCbus', score: 9800, condition: null },
-  { emoji: '🥊', title: 'Boxing Fundamentals — 6-Week Course', type: 'Coaching', price: '$120', seller: 'BoxLabCbus', score: 18200, condition: null },
-]
-
-const TYPE_COLOR: Record<string, string> = {
-  Gear:     'bg-blue-400/20 text-blue-300',
-  Event:    'bg-green-400/20 text-green-300',
-  Coaching: 'bg-yellow-400/20 text-yellow-300',
-}
 
 export default function MarketplacePage() {
-  return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
-      <div className="max-w-5xl mx-auto px-6">
+  const [activeTab, setActiveTab] = useState('All')
 
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-black text-white mb-4">Marketplace</h1>
-          <p className="text-white/70 text-lg">
-            Buy gear, find events, and connect with coaches — all in one place.
-          </p>
+  return (
+    <main className="min-h-screen">
+
+      {/* ── Hero ── */}
+      <section className="text-center pt-28 pb-10 px-6">
+        <h1 className="text-5xl font-black text-yellow-400 mb-6">Find Your Fit</h1>
+
+        {/* Post Item button */}
+        <div className="flex justify-center mb-6">
+          <button className="btn-primary flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm">
+            <PlusCircle className="w-4 h-4" />
+            + Post Item
+          </button>
         </div>
 
-        {/* Search bar */}
-        <div className="flex gap-3 mb-10">
-          <div className="flex-1 flex items-center gap-3 bg-white/10 border border-white/20 rounded-xl px-4 py-3">
-            <Search className="w-4 h-4 text-white/40" />
+        {/* Search row */}
+        <div className="max-w-2xl mx-auto flex gap-2">
+          <div className="flex-1 flex items-center gap-2 bg-white/10 border border-white/10 rounded-xl px-4 py-3">
+            <Search className="w-4 h-4 text-white/40 shrink-0" />
             <input
               type="text"
-              placeholder="Search gear, events, coaches..."
-              className="bg-transparent flex-1 text-white placeholder-white/30 text-sm outline-none"
+              placeholder="Search for players, items, or services..."
+              className="bg-transparent flex-1 text-white placeholder-white/40 text-sm outline-none"
             />
           </div>
-          <button className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white/60 hover:text-white hover:bg-white/20 transition-all text-sm">
-            <SlidersHorizontal className="w-4 h-4" />
-            Filter
+          <div className="w-48 flex items-center gap-2 bg-white/10 border border-white/10 rounded-xl px-4 py-3">
+            <MapPin className="w-4 h-4 text-white/40 shrink-0" />
+            <input
+              type="text"
+              placeholder="Enter zip code..."
+              className="bg-transparent flex-1 text-white placeholder-white/40 text-sm outline-none w-full"
+            />
+          </div>
+          <button className="btn-primary px-5 py-3 rounded-xl font-bold text-sm">
+            Search
           </button>
-          <Link
-            href="/log-activity"
-            className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-bold rounded-xl px-5 py-3 text-sm transition-all"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            List Item
-          </Link>
         </div>
+      </section>
 
-        {/* Categories */}
-        <div className="grid grid-cols-3 gap-4 mb-12">
-          {CATEGORIES.map(({ icon: Icon, label, count }) => (
+      {/* ── Map banner ── */}
+      <div className="max-w-6xl mx-auto px-6 mb-8">
+        <div className="bg-white/5 border border-white/10 rounded-2xl w-full h-48 flex items-center justify-center relative">
+          <span className="text-white/20 text-lg">📍 Map View Coming Soon</span>
+          <div className="absolute top-3 left-3 bg-purple-900 text-white text-sm px-3 py-1.5 rounded-full flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5" />
+            New York, NY
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div className="max-w-6xl mx-auto px-6 mb-6">
+        <div className="flex gap-2 flex-wrap">
+          {TABS.map(tab => (
             <button
-              key={label}
-              className="flex items-center gap-3 rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 hover:bg-[#6D28D9]/50 transition-all p-4 text-left"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-xl px-5 py-2 text-sm transition-all font-medium ${
+                activeTab === tab
+                  ? 'bg-yellow-400 text-purple-900 font-bold'
+                  : 'text-white/60 hover:text-white border border-white/10'
+              }`}
             >
-              <Icon className="w-5 h-5 text-yellow-400" />
-              <div>
-                <div className="text-white font-semibold text-sm">{label}</div>
-                <div className="text-white/40 text-xs">{count} listings</div>
-              </div>
+              {tab}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Featured listings */}
-        <h2 className="text-xl font-black text-white mb-4">Featured Listings</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-14">
-          {FEATURED.map(item => (
-            <div
-              key={item.title}
-              className="rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 hover:bg-[#6D28D9]/40 transition-all p-5 cursor-pointer"
-            >
-              <div className="text-4xl mb-3">{item.emoji}</div>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="text-white font-semibold text-sm leading-snug">{item.title}</h3>
-              </div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[item.type]}`}>
-                  {item.type}
-                </span>
-                {item.condition && (
-                  <span className="text-xs text-white/40">{item.condition}</span>
-                )}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-yellow-400 font-black text-lg">{item.price}</span>
-                <div className="text-right">
-                  <div className="text-white/60 text-xs">{item.seller}</div>
-                  <div className="text-white/30 text-xs">{item.score.toLocaleString()} pts</div>
-                </div>
+      {/* ── Listings grid ── */}
+      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+
+        {/* 1. Gear: Wilson Basketball */}
+        <div className="sz-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded">Gear</span>
+          </div>
+          <div className="bg-white/10 w-full aspect-video flex items-center justify-center">
+            <Tag className="text-white/20 w-12 h-12" />
+          </div>
+          <div className="p-4">
+            <p className="text-white font-bold mb-1">Wilson Evolution Basketball</p>
+            <p className="text-white/60 text-sm mb-2">Slightly used, great condition. The best indoor basketball money can buy.</p>
+            <div className="flex items-center gap-1 mb-3">
+              <MapPin className="w-3 h-3 text-white/50" />
+              <span className="text-white/50 text-xs">Queens, NY</span>
+            </div>
+            <p className="text-yellow-400 font-bold text-lg mb-1">$45</p>
+            <button className="btn-primary w-full mt-3 rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              View Item
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Player: Alex Johnson (Promoted) */}
+        <div className="sz-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="bg-yellow-400 text-purple-900 text-xs font-bold px-2 py-0.5 rounded">Promoted</span>
+            <span className="bg-white/10 text-xs px-2 py-0.5 rounded text-white/70">Player</span>
+          </div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">AJ</div>
+            <div>
+              <p className="font-bold text-white">Alex Johnson</p>
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-white/50" />
+                <span className="text-white/50 text-xs">Brooklyn, NY</span>
               </div>
             </div>
-          ))}
+          </div>
+          <p className="text-white/60 text-sm mb-3 line-clamp-2">Passionate about basketball and tennis. Always looking for new players to practice and compete with.</p>
+          <div className="flex gap-2 flex-wrap mb-3">
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded-full">Basketball · Intermediate</span>
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded-full">Tennis · Beginner</span>
+          </div>
+          <button className="btn-primary w-full rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2">
+            <Users className="w-4 h-4" />
+            Connect
+          </button>
         </div>
 
-        {/* CTA */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
-          <h2 className="text-3xl font-black text-white mb-4">Have Something to List?</h2>
-          <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
-            Create your free account to list gear, post events, or offer your coaching services to the Sandlotz community.
-          </p>
-          <Link
-            href="/signup"
-            className="inline-block bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-bold px-10 py-3.5 rounded-xl text-base transition-all shadow-lg"
-          >
-            Create Your Free Account
-          </Link>
+        {/* 3. Gear: Nike Pegasus */}
+        <div className="sz-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded">Gear</span>
+          </div>
+          <div className="bg-white/10 w-full aspect-video flex items-center justify-center">
+            <Tag className="text-white/20 w-12 h-12" />
+          </div>
+          <div className="p-4">
+            <p className="text-white font-bold mb-1">Nike Air Zoom Pegasus 40</p>
+            <p className="text-white/60 text-sm mb-2">Size 10. Worn twice. Great for tempo runs.</p>
+            <div className="flex items-center gap-1 mb-3">
+              <MapPin className="w-3 h-3 text-white/50" />
+              <span className="text-white/50 text-xs">Manhattan, NY</span>
+            </div>
+            <p className="text-yellow-400 font-bold text-lg mb-1">$85</p>
+            <button className="btn-primary w-full mt-3 rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              View Item
+            </button>
+          </div>
         </div>
+
+        {/* 4. Event: Saturday Run Club */}
+        <div className="sz-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded">Event</span>
+          </div>
+          <div className="bg-white/10 w-full aspect-video flex items-center justify-center">
+            <CalendarDays className="text-white/20 w-12 h-12" />
+          </div>
+          <div className="p-4">
+            <p className="text-white font-bold mb-1">Saturday Morning Run Club</p>
+            <p className="text-white/60 text-sm mb-2">5K easy run around Central Park. All paces welcome.</p>
+            <div className="flex items-center gap-1 mb-3">
+              <MapPin className="w-3 h-3 text-white/50" />
+              <span className="text-white/50 text-xs">Central Park, NY</span>
+            </div>
+            <p className="text-yellow-400 font-bold text-lg mb-1">Free</p>
+            <button className="btn-primary w-full mt-3 rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2">
+              <CalendarDays className="w-4 h-4" />
+              Join Event
+            </button>
+          </div>
+        </div>
+
+        {/* 5. Service: Basketball Coaching */}
+        <div className="sz-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded">Service</span>
+          </div>
+          <div className="bg-white/10 w-full aspect-video flex items-center justify-center">
+            <Star className="text-white/20 w-12 h-12" />
+          </div>
+          <div className="p-4">
+            <p className="text-white font-bold mb-1">Basketball Coaching Sessions</p>
+            <p className="text-white/60 text-sm mb-2">1-on-1 coaching for players aged 12-25. Former D3 player.</p>
+            <div className="flex items-center gap-1 mb-3">
+              <MapPin className="w-3 h-3 text-white/50" />
+              <span className="text-white/50 text-xs">Bronx, NY</span>
+            </div>
+            <p className="text-yellow-400 font-bold text-lg mb-1">$60/hr</p>
+            <button className="btn-primary w-full mt-3 rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2">
+              <Star className="w-4 h-4" />
+              Book Now
+            </button>
+          </div>
+        </div>
+
+        {/* 6. Gear: Peloton Cycling Shoes */}
+        <div className="sz-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+            <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded">Gear</span>
+          </div>
+          <div className="bg-white/10 w-full aspect-video flex items-center justify-center">
+            <Tag className="text-white/20 w-12 h-12" />
+          </div>
+          <div className="p-4">
+            <p className="text-white font-bold mb-1">Peloton Cycling Shoes</p>
+            <p className="text-white/60 text-sm mb-2">Size 9W, clip-in, barely used.</p>
+            <div className="flex items-center gap-1 mb-3">
+              <MapPin className="w-3 h-3 text-white/50" />
+              <span className="text-white/50 text-xs">Brooklyn, NY</span>
+            </div>
+            <p className="text-yellow-400 font-bold text-lg mb-1">$40</p>
+            <button className="btn-primary w-full mt-3 rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              View Item
+            </button>
+          </div>
+        </div>
+
       </div>
+
+      {/* ── Sponsored Challenges ── */}
+      <div className="max-w-6xl mx-auto px-6 mb-10">
+        <div className="flex items-center gap-2 mb-1">
+          <TrendingUp className="w-5 h-5 text-yellow-400" />
+          <h2 className="text-2xl font-bold text-white">Sponsored Challenges</h2>
+        </div>
+        <p className="text-white/60 text-sm mb-4">
+          Join brand-sponsored challenges to compete for glory and bonus PlayerPoints.
+        </p>
+
+        {/* Filter row */}
+        <div className="flex gap-3 justify-end mb-4 flex-wrap">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+            <MapPin className="w-3.5 h-3.5 text-white/40" />
+            <input
+              type="text"
+              placeholder="Zip code"
+              className="bg-transparent text-white text-sm placeholder-white/40 outline-none w-24"
+            />
+          </div>
+          <select className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none">
+            <option value="">All Sports</option>
+            <option value="basketball">Basketball</option>
+            <option value="running">Running</option>
+            <option value="tennis">Tennis</option>
+          </select>
+          <select className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="ending">Ending Soon</option>
+          </select>
+        </div>
+
+        {/* Challenge rows */}
+        {CHALLENGES.map(c => (
+          <div key={c.title} className="sz-card p-4 mb-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-white font-bold">{c.title}</p>
+              <span className="text-white/50 text-sm shrink-0">{c.timeLeft}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-white/10 my-2">
+              <div
+                className="h-full rounded-full bg-yellow-400"
+                style={{ width: `${c.progress}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-white/60 text-sm">
+                <Users className="w-4 h-4" />
+                {c.participants} participants
+              </div>
+              <button className="btn-primary px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5" />
+                Join Challenge
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </main>
   )
 }

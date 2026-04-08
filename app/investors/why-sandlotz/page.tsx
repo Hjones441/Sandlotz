@@ -54,7 +54,7 @@ const SCALE = [
 
 export default function WhySandlotzPage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-4xl mx-auto px-6">
 
         {/* Hero */}
@@ -78,7 +78,7 @@ export default function WhySandlotzPage() {
         <p className="text-white/70 text-sm mb-8">Modern advertising is noisy. Sandlotz offers guaranteed, action-based results.</p>
         <div className="grid sm:grid-cols-2 gap-5 mb-14">
           {BRAND_CHANNELS.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="flex gap-4 rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-5">
+            <div key={title} className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5">
               <Icon className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-white font-bold mb-1">{title}</h3>
@@ -126,7 +126,7 @@ export default function WhySandlotzPage() {
         </ul>
 
         {/* CTA */}
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">
             Sandlotz is more than an app — it&apos;s a movement commerce engine.
           </h2>

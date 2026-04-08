@@ -19,11 +19,11 @@ const ANTI_CHEAT = [
 
 export default function ScoringVerificationPage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-6">
 
         {/* Hero */}
-        <div className="rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-8 mb-12">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 mb-12">
           <h1 className="text-4xl font-black text-white mb-2">The Sandlotz Simple-Score™ Formula</h1>
           <p className="text-white/50 text-sm">Commitment to a fair and transparent ecosystem • Last updated 28 June 2025</p>
         </div>
@@ -43,7 +43,7 @@ export default function ScoringVerificationPage() {
           <h2 className="text-2xl font-bold text-yellow-400 mb-3">2. The Scoring Formula</h2>
           <p className="text-white/70 text-sm mb-5">Points hinge on the quality—not just the quantity—of effort.</p>
 
-          <div className="rounded-xl border border-purple-400/30 bg-purple-900/40 px-6 py-4 mb-6 font-mono text-sm text-white overflow-x-auto">
+          <div className="rounded-xl border border-white/10 bg-white/[0.08] px-6 py-4 mb-6 font-mono text-sm text-white overflow-x-auto">
             Activity Points (AP) = (Calories Burned ÷ 10) × Source Modifier × Effort Validator
           </div>
 
@@ -79,7 +79,7 @@ export default function ScoringVerificationPage() {
 
           {/* 3.1 */}
           <h3 className="text-lg font-bold text-white mb-3">3.1 Intensity Multiplier (Heart-Rate First)</h3>
-          <div className="rounded-2xl border border-purple-400/20 overflow-hidden mb-6">
+          <div className="rounded-2xl border border-white/10 overflow-hidden mb-6">
             <div className="grid grid-cols-3 bg-purple-900/60 px-4 py-2 text-xs font-bold text-white/50 uppercase tracking-wide">
               <span>Data Quality</span><span>Criteria</span><span className="text-right">Multiplier</span>
             </div>
@@ -173,7 +173,7 @@ export default function ScoringVerificationPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">Start Earning Points</h2>
           <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
             Create your free account, connect your wearable, and log your first activity.

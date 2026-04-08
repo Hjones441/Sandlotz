@@ -36,7 +36,7 @@ const REVENUE_STREAMS = [
 
 export default function InvestorsPage() {
   return (
-    <main className="min-h-screen bg-[#5B21B6] pt-24 pb-16">
+    <main className="min-h-screen pt-24 pb-16">
       <div className="max-w-4xl mx-auto px-6">
 
         <div className="text-center mb-14">
@@ -52,7 +52,7 @@ export default function InvestorsPage() {
         <hr className="border-white/20 mb-6" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
           {STATS.map(s => (
-            <div key={s.label} className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 p-5 text-center">
+            <div key={s.label} className="rounded-2xl border border-white/10 bg-white/[0.08] p-5 text-center">
               <div className="text-3xl font-black text-yellow-400 mb-1">{s.value}</div>
               <div className="text-white/60 text-xs leading-snug">{s.label}</div>
             </div>
@@ -64,7 +64,7 @@ export default function InvestorsPage() {
         <hr className="border-white/20 mb-6" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
           {TRACTION.map(({ icon: Icon, label, value }) => (
-            <div key={label} className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/30 p-5 text-center flex flex-col items-center gap-2">
+            <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.08] p-5 text-center flex flex-col items-center gap-2">
               <Icon className="w-6 h-6 text-yellow-400" />
               <div className="text-2xl font-black text-white">{value}</div>
               <div className="text-white/50 text-xs">{label}</div>
@@ -77,7 +77,7 @@ export default function InvestorsPage() {
         <hr className="border-white/20 mb-6" />
         <div className="grid sm:grid-cols-2 gap-4 mb-14">
           {REVENUE_STREAMS.map(r => (
-            <div key={r.title} className="rounded-2xl border border-purple-400/20 bg-[#6D28D9]/20 p-5">
+            <div key={r.title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <h3 className="text-white font-bold mb-2">{r.title}</h3>
               <p className="text-white/70 text-sm leading-relaxed">{r.body}</p>
             </div>
@@ -85,7 +85,7 @@ export default function InvestorsPage() {
         </div>
 
         {/* Vision */}
-        <div className="flex gap-5 rounded-2xl border border-yellow-400/30 bg-yellow-400/5 p-6 mb-14">
+        <div className="flex gap-5 rounded-2xl border border-yellow-400/20 bg-yellow-400/5 p-6 mb-14">
           <BarChart3 className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="text-yellow-400 font-bold text-lg mb-2">The Vision</h3>
@@ -97,7 +97,7 @@ export default function InvestorsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-purple-400/30 bg-[#6D28D9]/40 px-8 py-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/10 px-8 py-12 text-center">
           <h2 className="text-3xl font-black text-white mb-4">Get in Touch</h2>
           <p className="text-white/80 text-base leading-relaxed max-w-md mx-auto mb-8">
             Interested in learning more about Sandlotz investment opportunities?
