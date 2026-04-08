@@ -41,18 +41,32 @@ service cloud.firestore {
       allow write: if isOwner(uid);
     }
 
-    // Activities — users can only CRUD their own activity docs
+    // Activities — users can only create/read their own; score is server-validated
+    // Update/delete are blocked to prevent score manipulation after logging
     match /activities/{id} {
-      allow create: if isAuthed() && request.resource.data.uid == request.auth.uid;
-      allow read:   if isAuthed() && resource.data.uid == request.auth.uid;
-      allow update,
-            delete: if isAuthed() && resource.data.uid == request.auth.uid;
+      allow create: if isAuthed()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100000  // sanity cap
+        && request.resource.data.durationMinutes is int
+        && request.resource.data.durationMinutes > 0
+        && request.resource.data.durationMinutes <= 1440; // max 24h
+      allow read: if isAuthed() && resource.data.uid == request.auth.uid;
+      // No client-side update or delete — scores are immutable once logged
+      allow update, delete: if isAdmin();
     }
 
     // Redemptions — users can create and read their own redemptions (no delete)
     match /redemptions/{id} {
       allow create: if isAuthed() && request.resource.data.uid == request.auth.uid;
       allow read:   if isAuthed() && resource.data.uid == request.auth.uid;
+    }
+
+    // Partnership inquiries — anyone can submit; only admins can read
+    match /partnershipInquiries/{id} {
+      allow create: if true; // public form, no auth required
+      allow read, update, delete: if isAdmin();
     }
 
     // ── Deny everything else ──────────────────────────────────────────────────

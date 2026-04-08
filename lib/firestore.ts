@@ -15,7 +15,8 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { calculateActivityScore, SportType } from './sandlotzScore'
-import type { ScoringFitnessData } from './sandlotzScore'
+import type { ScoringFitnessData, ScoreBreakdown } from './sandlotzScore'
+import { calculateActivityScoreDetailed } from './sandlotzScore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export interface Activity {
   distanceKm:      number
   intensity:       number
   score:           number
+  scoreBreakdown?: ScoreBreakdown
   notes:           string
   imageUrls?:      string[]
   fitnessData?:    FitnessData
@@ -112,11 +114,17 @@ export async function logActivity(params: {
 }): Promise<number> {
   const { uid, sport, durationMinutes, distanceKm, intensity, notes, city, displayName, photoURL, imageUrls, fitnessData } = params
   const scoringFitness: ScoringFitnessData | undefined = fitnessData
-    ? { source: fitnessData.source, heartRateAvg: fitnessData.heartRateAvg, elevationGain: fitnessData.elevationGain }
+    ? {
+        source:        fitnessData.source,
+        heartRateAvg:  fitnessData.heartRateAvg,
+        elevationGain: fitnessData.elevationGain,
+        calories:      fitnessData.calories,
+      }
     : undefined
-  const score = calculateActivityScore(sport, durationMinutes, distanceKm, intensity, scoringFitness)
+  const breakdown = calculateActivityScoreDetailed(sport, durationMinutes, distanceKm, intensity, scoringFitness)
+  const score     = breakdown.total
 
-  // Write activity document
+  // Write activity document with full score breakdown for audit trail
   await addDoc(collection(db, 'activities'), {
     uid,
     sport,
@@ -124,6 +132,15 @@ export async function logActivity(params: {
     distanceKm,
     intensity,
     score,
+    scoreBreakdown: {
+      basePoints:     breakdown.basePoints,
+      distanceBonus:  breakdown.distanceBonus,
+      elevationBonus: breakdown.elevationBonus,
+      caloriesBonus:  breakdown.caloriesBonus,
+      hrMultiplier:   breakdown.hrMultiplier,
+      sourceVerified: breakdown.sourceVerified,
+      durationDamped: breakdown.durationDamped,
+    },
     notes,
     ...(imageUrls && imageUrls.length > 0 && { imageUrls }),
     ...(fitnessData && { fitnessData }),

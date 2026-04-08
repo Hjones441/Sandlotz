@@ -11,11 +11,14 @@ import {
   SPORT_OPTIONS,
   INTENSITY_LABELS,
   SportType,
-  calculateActivityScore,
+  calculateActivityScoreDetailed,
+  validateFitnessData,
+  type ScoreBreakdown,
 } from '@/lib/sandlotzScore'
 import {
   Zap, Upload, X, Heart, Flame, Footprints,
   Mountain, Timer, ChevronDown, ChevronUp, Image as ImageIcon,
+  Link2, RefreshCw, CheckCircle2,
 } from 'lucide-react'
 
 const FADE_UP = {
@@ -24,6 +27,20 @@ const FADE_UP = {
 }
 
 const FITNESS_SOURCES = ['Manual', 'Strava', 'Garmin', 'Apple Health', 'Polar', 'Wahoo', 'Whoop', 'Other']
+
+interface StravaActivity {
+  stravaId:        number
+  name:            string
+  sport:           string
+  durationMinutes: number
+  distanceKm:      number
+  elevationGain:   number
+  heartRateAvg?:   number
+  heartRateMax?:   number
+  calories?:       number
+  paceMinPerKm?:   string
+  startDate:       string
+}
 
 export default function LogActivityPage() {
   const { user, profile, loading, refreshProfile } = useAuth()
@@ -55,19 +72,100 @@ export default function LogActivityPage() {
   const [pace,            setPace]             = useState('')
   const [elevationGain,   setElevationGain]    = useState('')
 
+  // Strava integration
+  const [stravaConnected,   setStravaConnected]   = useState(false)
+  const [stravaActivities,  setStravaActivities]  = useState<StravaActivity[]>([])
+  const [stravaLoading,     setStravaLoading]     = useState(false)
+  const [stravaError,       setStravaError]       = useState('')
+  const [showStravaList,    setShowStravaList]     = useState(false)
+
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
   }, [user, loading, router])
 
-  const previewScore = calculateActivityScore(
+  // Check for Strava connection status from URL params after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('strava') === 'connected') {
+      setStravaConnected(true)
+      window.history.replaceState({}, '', '/log-activity')
+      fetchStravaActivities()
+    } else if (params.get('strava') === 'denied') {
+      setStravaError('Strava connection was denied.')
+    }
+    // Try fetching activities silently (tokens may already be in cookie from a prior session)
+    fetchStravaActivities()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function fetchStravaActivities() {
+    setStravaLoading(true)
+    setStravaError('')
+    try {
+      const res = await fetch('/api/strava/activities')
+      if (res.status === 401) { setStravaConnected(false); return }
+      if (!res.ok) throw new Error('Failed to fetch Strava activities')
+      const data = await res.json()
+      setStravaActivities(data.activities ?? [])
+      setStravaConnected(true)
+    } catch {
+      // Silently fail — user can still log manually
+    } finally {
+      setStravaLoading(false)
+    }
+  }
+
+  function connectStrava() {
+    const clientId   = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID
+    const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
+    const redirectUri = encodeURIComponent(`${appUrl}/api/strava/callback`)
+    const scope       = 'read,activity:read_all'
+    window.location.href = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`
+  }
+
+  function populateFromStrava(activity: StravaActivity) {
+    setSport((activity.sport as SportType) || 'other')
+    setDuration(String(activity.durationMinutes))
+    setDistance(String(activity.distanceKm))
+    setNotes(activity.name)
+    setFitnessSource('Strava')
+    if (activity.heartRateAvg) setHeartRateAvg(String(activity.heartRateAvg))
+    if (activity.heartRateMax) setHeartRateMax(String(activity.heartRateMax))
+    if (activity.calories)     setCalories(String(activity.calories))
+    if (activity.elevationGain) setElevationGain(String(activity.elevationGain))
+    if (activity.paceMinPerKm)  setPace(activity.paceMinPerKm)
+    setShowFitnessData(true)
+    setShowStravaList(false)
+    // Auto-set intensity based on HR
+    if (activity.heartRateAvg) {
+      if (activity.heartRateAvg >= 170) setIntensity(5)
+      else if (activity.heartRateAvg >= 150) setIntensity(4)
+      else if (activity.heartRateAvg >= 130) setIntensity(3)
+      else setIntensity(2)
+    }
+  }
+
+  const fitnessScoringData = showFitnessData
+    ? {
+        source:        fitnessSource,
+        heartRateAvg:  heartRateAvg  ? Number(heartRateAvg)  : undefined,
+        elevationGain: elevationGain ? Number(elevationGain) : undefined,
+        calories:      calories      ? Number(calories)      : undefined,
+      }
+    : undefined
+
+  const scoreBreakdown: ScoreBreakdown = calculateActivityScoreDetailed(
     sport,
     Number(duration) || 0,
     Number(distance) || 0,
     intensity,
-    showFitnessData
-      ? { source: fitnessSource, heartRateAvg: heartRateAvg ? Number(heartRateAvg) : undefined, elevationGain: elevationGain ? Number(elevationGain) : undefined }
-      : undefined,
+    fitnessScoringData,
   )
+  const previewScore = scoreBreakdown.total
+
+  const plausibilityWarnings = showFitnessData && fitnessScoringData
+    ? validateFitnessData(Number(duration) || 0, fitnessScoringData)
+    : []
 
   function handleFileChange(files: FileList | null) {
     if (!files) return
@@ -229,6 +327,99 @@ export default function LogActivityPage() {
       </motion.div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* ── Strava Connect / Import ────────────────────────────────────────── */}
+        <motion.div variants={FADE_UP} initial="hidden" animate="show">
+          {stravaConnected ? (
+            <div className="sz-card overflow-hidden">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#FC4C02]/10 rounded-lg flex items-center justify-center">
+                    <span className="text-[#FC4C02] font-black text-sm">S</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      Strava Connected
+                    </p>
+                    <p className="text-xs text-white/40">{stravaActivities.length} recent activities available</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchStravaActivities}
+                    disabled={stravaLoading}
+                    className="btn-ghost !py-1.5 !px-3 text-xs flex items-center gap-1"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${stravaLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowStravaList(!showStravaList)}
+                    className="btn-primary !py-1.5 !px-3 text-xs"
+                  >
+                    Import Activity
+                  </button>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {showStravaList && stravaActivities.length > 0 && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden border-t border-white/10"
+                  >
+                    <div className="max-h-64 overflow-y-auto">
+                      {stravaActivities.map(a => (
+                        <button
+                          key={a.stravaId}
+                          type="button"
+                          onClick={() => populateFromStrava(a)}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-semibold truncate">{a.name}</p>
+                            <p className="text-white/40 text-xs">
+                              {a.durationMinutes}min · {a.distanceKm}km
+                              {a.heartRateAvg ? ` · ${a.heartRateAvg} bpm avg` : ''}
+                              {a.calories     ? ` · ${a.calories} kcal` : ''}
+                            </p>
+                          </div>
+                          <span className="text-yellow-400 text-xs font-bold ml-3 shrink-0">Import →</span>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={connectStrava}
+              disabled={!process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID}
+              className="w-full flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 hover:bg-white/10 transition-all group disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <div className="w-8 h-8 bg-[#FC4C02]/10 rounded-lg flex items-center justify-center">
+                <span className="text-[#FC4C02] font-black text-sm">S</span>
+              </div>
+              <div className="text-left">
+                <p className="text-white font-bold text-sm flex items-center gap-2">
+                  <Link2 className="w-4 h-4" />
+                  Connect Strava
+                  {!process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID && <span className="text-white/30 font-normal text-xs">(configure NEXT_PUBLIC_STRAVA_CLIENT_ID)</span>}
+                </p>
+                <p className="text-white/40 text-xs">Auto-import your activities — HR, calories, elevation included</p>
+              </div>
+              <span className="text-yellow-400 text-xs font-bold ml-auto">+5% verified bonus →</span>
+            </button>
+          )}
+          {stravaError && <p className="text-red-400 text-xs mt-2 text-center">{stravaError}</p>}
+        </motion.div>
 
         {/* ── Sport ─────────────────────────────────────────────────────────── */}
         <motion.div variants={FADE_UP} initial="hidden" animate="show" transition={{ delay: 0.05 }}>
@@ -539,6 +730,27 @@ export default function LogActivityPage() {
           </AnimatePresence>
         </motion.div>
 
+        {/* ── Plausibility Warnings ─────────────────────────────────────────── */}
+        <AnimatePresence>
+          {plausibilityWarnings.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="space-y-2"
+            >
+              {plausibilityWarnings.map((w, i) => (
+                <div key={i} className={`rounded-xl px-4 py-3 text-xs font-medium flex items-center gap-2 ${
+                  w.severity === 'error'
+                    ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                    : 'bg-yellow-400/10 border border-yellow-400/20 text-yellow-300'
+                }`}>
+                  <span>{w.severity === 'error' ? '⛔' : '⚠️'}</span>
+                  {w.message}
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ── Score Preview ──────────────────────────────────────────────────── */}
         <AnimatePresence>
           {previewScore > 0 && (
@@ -546,13 +758,46 @@ export default function LogActivityPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="sz-card p-5 flex items-center justify-between border-brand-yellow/20 bg-brand-yellow/5"
+              className="sz-card p-5 border-brand-yellow/20 bg-brand-yellow/5"
             >
-              <div className="flex items-center gap-2 text-white/70">
-                <Zap className="w-5 h-5 text-brand-yellow" />
-                <span className="text-sm font-semibold">Points Preview</span>
+              {/* Total */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-white/70">
+                  <Zap className="w-5 h-5 text-brand-yellow" />
+                  <span className="text-sm font-semibold">Points Preview</span>
+                </div>
+                <p className="text-2xl font-black text-brand-yellow">+{previewScore}</p>
               </div>
-              <p className="text-2xl font-black text-brand-yellow">+{previewScore}</p>
+
+              {/* Breakdown rows */}
+              <div className="border-t border-white/10 pt-3 space-y-1.5">
+                {[
+                  { label: 'Base (duration × intensity × sport)', value: scoreBreakdown.basePoints },
+                  { label: 'Distance bonus',                       value: scoreBreakdown.distanceBonus },
+                  ...(scoreBreakdown.elevationBonus > 0 ? [{ label: 'Elevation bonus', value: scoreBreakdown.elevationBonus }] : []),
+                  ...(scoreBreakdown.caloriesBonus  > 0 ? [{ label: 'Calories bonus',  value: scoreBreakdown.caloriesBonus  }] : []),
+                ].map(row => (
+                  <div key={row.label} className="flex items-center justify-between text-xs">
+                    <span className="text-white/50">{row.label}</span>
+                    <span className="text-white/70 font-semibold">+{row.value}</span>
+                  </div>
+                ))}
+                {scoreBreakdown.sourceVerified && (
+                  <div className="flex items-center gap-1.5 text-xs text-green-400 pt-1">
+                    <span>✓</span> Verified source (+5% bonus applied)
+                  </div>
+                )}
+                {scoreBreakdown.hrMultiplier > 1.0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-red-300 pt-0">
+                    <span>♥</span> HR zone bonus (×{scoreBreakdown.hrMultiplier})
+                  </div>
+                )}
+                {scoreBreakdown.durationDamped && (
+                  <div className="flex items-center gap-1.5 text-xs text-yellow-400/70 pt-0">
+                    <span>⏱</span> Ultra-duration damper applied (×0.85)
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

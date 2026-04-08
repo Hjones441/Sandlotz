@@ -1,6 +1,20 @@
 // ─── Sandlotz Score™ (PlayerPoints) Algorithm ────────────────────────────────
-// Score = (duration × intensityMult × sportMult) + (distanceKm × 2 × sportMult)
-// Cumulative score = sum of all activity scores on the user's profile.
+//
+// Base formula:
+//   score = (duration × intensityMult × sportMult × hrMult × sourceBonus)
+//         + (distanceKm × 2 × sportMult)
+//         + elevationBonus
+//         + caloriesBonus
+//
+// Modifiers that increase score:
+//   - HR Zone 5 (≥170 bpm): ×1.30
+//   - Verified source (non-Manual): ×1.05
+//   - Elevation: +1 pt per 100 m gain
+//   - Calories: +1 pt per 50 kcal (capped at 1000 kcal for manual entries)
+//
+// Modifiers that reduce score:
+//   - Ultra-duration damping: activities > 240 min → ×0.85
+//   - Manual-only penalty: source = 'Manual' → ×1.0 (no bonus)
 
 export type SportType =
   | 'running'
@@ -62,9 +76,9 @@ export const SPORT_OPTIONS: { value: SportType; label: string; emoji: string }[]
   { value: 'other',      label: 'Other',          emoji: '🏅' },
 ]
 
-// Heart-rate zone multipliers applied when verified HR data is present.
-// Zones based on % of typical max HR (220 - age ≈ 190 used as reference).
-// If HR data comes from a connected app (not 'Manual'), a verification bonus is applied.
+// ─── Modifier functions ───────────────────────────────────────────────────────
+
+// Heart-rate zone multiplier (based on % of typical max HR, ref ~190 bpm)
 function hrZoneMultiplier(avgHR: number | undefined): number {
   if (!avgHR) return 1.0
   if (avgHR >= 170) return 1.30  // Zone 5 — max effort
@@ -74,17 +88,46 @@ function hrZoneMultiplier(avgHR: number | undefined): number {
   return 1.0                      // Zone 1 — very light
 }
 
-// Elevation bonus: +1 pt per 100 m of verified gain
+// +1 pt per 100 m elevation gain (verified data only)
 function elevationBonus(elevationGain: number | undefined): number {
-  if (!elevationGain) return 0
+  if (!elevationGain || elevationGain <= 0) return 0
   return Math.floor(elevationGain / 100)
 }
 
-export interface ScoringFitnessData {
-  source?:       string
-  heartRateAvg?: number
-  elevationGain?: number
+// +1 pt per 50 kcal; manual entries capped at 1000 kcal to prevent inflation
+function caloriesBonus(calories: number | undefined, isManual: boolean): number {
+  if (!calories || calories <= 0) return 0
+  const capped = isManual ? Math.min(calories, 1000) : calories
+  return Math.floor(capped / 50)
 }
+
+// Ultra-long activities (>240 min) get a mild damper — diminishing returns past 4 hrs
+function durationDamper(durationMinutes: number): number {
+  if (durationMinutes > 240) return 0.85
+  return 1.0
+}
+
+// ─── Exported interfaces ──────────────────────────────────────────────────────
+
+export interface ScoringFitnessData {
+  source?:        string   // 'Manual' | 'Strava' | 'Garmin' | 'Apple Health' | ...
+  heartRateAvg?:  number   // bpm
+  elevationGain?: number   // metres
+  calories?:      number   // kcal
+}
+
+export interface ScoreBreakdown {
+  basePoints:     number   // duration × intensity × sport × HR × source
+  distanceBonus:  number   // distanceKm × 2 × sport
+  elevationBonus: number   // +1 per 100 m
+  caloriesBonus:  number   // +1 per 50 kcal
+  total:          number
+  hrMultiplier:   number
+  sourceVerified: boolean
+  durationDamped: boolean
+}
+
+// ─── Main scoring function ────────────────────────────────────────────────────
 
 export function calculateActivityScore(
   sport: SportType,
@@ -93,18 +136,82 @@ export function calculateActivityScore(
   intensity: number,
   fitnessData?: ScoringFitnessData,
 ): number {
+  return calculateActivityScoreDetailed(sport, durationMinutes, distanceKm, intensity, fitnessData).total
+}
+
+export function calculateActivityScoreDetailed(
+  sport: SportType,
+  durationMinutes: number,
+  distanceKm: number,
+  intensity: number,
+  fitnessData?: ScoringFitnessData,
+): ScoreBreakdown {
   const sportMult      = SPORT_MULTIPLIERS[sport] ?? 1.0
   const intensityMult  = INTENSITY_MULTIPLIERS[intensity] ?? 1.0
   const hrMult         = hrZoneMultiplier(fitnessData?.heartRateAvg)
-  // Verified source (non-manual) adds a 5% trust bonus
-  const verifiedBonus  = fitnessData?.source && fitnessData.source !== 'Manual' ? 1.05 : 1.0
+  const isManual       = !fitnessData?.source || fitnessData.source === 'Manual'
+  const sourceBonus    = isManual ? 1.0 : 1.05
+  const damper         = durationDamper(durationMinutes)
 
-  const basePoints     = durationMinutes * intensityMult * sportMult * hrMult * verifiedBonus
-  const distanceBonus  = distanceKm * 2.0 * sportMult
-  const elBonus        = elevationBonus(fitnessData?.elevationGain)
+  const base      = durationMinutes * intensityMult * sportMult * hrMult * sourceBonus * damper
+  const distBonus = distanceKm * 2.0 * sportMult
+  const elBonus   = elevationBonus(fitnessData?.elevationGain)
+  const calBonus  = caloriesBonus(fitnessData?.calories, isManual)
 
-  return Math.round(basePoints + distanceBonus + elBonus)
+  const total = Math.round(base + distBonus + elBonus + calBonus)
+
+  return {
+    basePoints:     Math.round(base),
+    distanceBonus:  Math.round(distBonus),
+    elevationBonus: elBonus,
+    caloriesBonus:  calBonus,
+    total,
+    hrMultiplier:   hrMult,
+    sourceVerified: !isManual,
+    durationDamped: damper < 1.0,
+  }
 }
+
+// ─── Plausibility validator ───────────────────────────────────────────────────
+
+export interface PlausibilityWarning {
+  field:    string
+  message:  string
+  severity: 'warn' | 'error'
+}
+
+export function validateFitnessData(
+  durationMinutes: number,
+  fitnessData: ScoringFitnessData,
+): PlausibilityWarning[] {
+  const warnings: PlausibilityWarning[] = []
+  const { heartRateAvg, calories, elevationGain, source } = fitnessData
+  const isManual = !source || source === 'Manual'
+
+  if (heartRateAvg !== undefined) {
+    if (heartRateAvg < 40 || heartRateAvg > 220) {
+      warnings.push({ field: 'heartRateAvg', message: 'Heart rate out of human range (40–220 bpm).', severity: 'error' })
+    } else if (heartRateAvg > 200 && isManual) {
+      warnings.push({ field: 'heartRateAvg', message: 'HR above 200 bpm is unusual — consider verifying with a connected app.', severity: 'warn' })
+    }
+  }
+
+  if (calories !== undefined) {
+    // Rough max: elite athlete burns ~1,400 kcal/hr
+    const maxReasonableCalories = (durationMinutes / 60) * 1400
+    if (calories > maxReasonableCalories) {
+      warnings.push({ field: 'calories', message: `${calories} kcal seems high for ${durationMinutes} min. Manual entries capped at 1000 kcal for scoring.`, severity: 'warn' })
+    }
+  }
+
+  if (elevationGain !== undefined && elevationGain > 5000) {
+    warnings.push({ field: 'elevationGain', message: 'Elevation gain over 5,000 m is extraordinary. Verify your data source.', severity: 'warn' })
+  }
+
+  return warnings
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
 
 export function formatScore(score: number): string {
   if (score >= 1_000_000) return `${(score / 1_000_000).toFixed(1)}M`
