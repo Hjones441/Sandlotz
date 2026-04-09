@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { terraHeaders, TERRA_BASE, mapTerraActivityType, formatPaceFromMs } from '@/lib/terra'
 import type { TerraActivity } from '@/lib/terra'
 
+export const dynamic = "force-dynamic"
+
 export async function GET(req: NextRequest) {
   const uid = req.nextUrl.searchParams.get('uid')
   if (!uid) return NextResponse.json({ error: 'uid required' }, { status: 400 })

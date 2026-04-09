@@ -12,6 +12,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { terraHeaders, TERRA_BASE } from '@/lib/terra'
 
+export const dynamic = "force-dynamic"
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.TERRA_API_KEY
   const devId  = process.env.TERRA_DEV_ID

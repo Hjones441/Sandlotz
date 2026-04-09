@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+export const dynamic = "force-dynamic"
+
 // POST /api/ai-coach
 // Body: { activities: Activity[], totalScore: number, tier: string }
 // Returns: { insight: string, tips: string[] }
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI not configured' }, { status: 503 })
   }
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const body = await req.json()
   const { activities = [], totalScore = 0, tier = 'Rookie' } = body
