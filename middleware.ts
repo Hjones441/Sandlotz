@@ -11,24 +11,19 @@ const APP_ROUTES = [
   '/log-activity',
 ]
 
-// Routes where an already-authenticated user should be sent to the app instead
-const AUTH_ONLY_ROUTES = ['/login', '/signup', '/verify-email']
+// Auth pages where an authenticated user shouldn't need to land
+const AUTH_ROUTES = ['/login', '/signup', '/verify-email']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isAuthed = request.cookies.has('sl-auth')
 
-  // Already-authenticated user visits the marketing homepage → send to app
-  if (isAuthed && pathname === '/') {
+  // Authenticated user hits the app root or an auth page → go to dashboard
+  if (isAuthed && (pathname === '/' || AUTH_ROUTES.some(r => pathname.startsWith(r)))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Already-authenticated user visits auth pages (login/signup) → send to app
-  if (isAuthed && AUTH_ONLY_ROUTES.some(r => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  // Unauthenticated user tries to access app routes → send to login
+  // Unauthenticated user tries to access a protected app route → login
   if (!isAuthed && APP_ROUTES.some(r => pathname.startsWith(r))) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('from', pathname)
@@ -39,6 +34,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on all routes except Next.js internals, static files, and API routes
   matcher: ['/((?!api|_next/static|_next/image|favicon\\.ico).*)'],
 }
