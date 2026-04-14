@@ -16,7 +16,7 @@ const footerLinks = {
   ],
   Contact: [
     { href: '/contact', label: 'Book a Discovery Call' },
-    { href: 'mailto:hello@rthreellc.com', label: 'hello@rthreellc.com' },
+    { href: 'mailto:admin@rthreellc.com', label: 'admin@rthreellc.com' },
   ],
 }
 

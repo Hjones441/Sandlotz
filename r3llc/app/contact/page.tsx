@@ -22,8 +22,8 @@ const contactInfo = [
   {
     Icon: Mail,
     title: 'Email directly',
-    description: 'hello@rthreellc.com',
-    href: 'mailto:hello@rthreellc.com',
+    description: 'admin@rthreellc.com',
+    href: 'mailto:admin@rthreellc.com',
   },
 ]
 

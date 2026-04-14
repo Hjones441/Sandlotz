@@ -181,8 +181,8 @@ export default function IntakeForm() {
       {status === 'error' && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           Something went wrong. Please try again or email{' '}
-          <a href="mailto:hello@rthreellc.com" className="underline">
-            hello@rthreellc.com
+          <a href="mailto:admin@rthreellc.com" className="underline">
+            admin@rthreellc.com
           </a>{' '}
           directly.
         </p>
