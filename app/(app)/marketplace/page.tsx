@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import AppHeader from '@/components/layout/AppHeader'
 import {
   Search,
   MapPin,
@@ -63,11 +64,14 @@ export default function MarketplacePage() {
   })
 
   return (
-    <main className="min-h-screen">
+    <main>
+      <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
+        <AppHeader title="Marketplace" subtitle="Spend PlayerPoints on gear & perks" />
+      </div>
 
       {/* ── Hero ── */}
-      <section className="text-center pt-28 pb-10 px-6">
-        <h1 className="text-5xl font-black text-yellow-400 mb-6">Find Your Fit</h1>
+      <section className="text-center pt-6 pb-8 px-6">
+        <h1 className="text-4xl font-black text-yellow-400 mb-4">Find Your Fit</h1>
 
         <div className="flex justify-center mb-6">
           <Link href="/log-activity" className="btn-primary flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm">

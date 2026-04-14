@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import { getLeaderboard, LeaderboardEntry } from '@/lib/firestore'
 import { SPORT_OPTIONS, formatScore, getRankTier } from '@/lib/sandlotzScore'
 import { Trophy, Medal, ChevronDown, Lock, Users, Zap, MapPin, Filter } from 'lucide-react'
+import AppHeader from '@/components/layout/AppHeader'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -77,14 +78,12 @@ export default function LeaderboardPage() {
   const myRank = entries.findIndex(e => e.uid === user?.uid) + 1
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-24 pb-16">
-
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-2">
-        <Trophy className="w-8 h-8 text-yellow-400" />
-        <h1 className="text-3xl font-black text-white">Leaderboard</h1>
+    <div className="max-w-4xl mx-auto pb-4">
+      <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
+        <AppHeader title="Leaderboard" subtitle="Ranked by Sandlotz Score™"
+          right={<Trophy className="w-5 h-5 text-brand-yellow" />} />
       </div>
-      <p className="text-white/50 mb-8">Top performers ranked by Sandlotz Score™</p>
+      <div className="px-4 pt-4">
 
       {/* ── Find Your Niche filter card ── */}
       <div className="sz-card p-6 mb-6">
@@ -239,6 +238,7 @@ export default function LeaderboardPage() {
         <Link href="/about/products" className="btn-primary text-sm !py-2.5 !px-5 shrink-0 flex items-center gap-2">
           <Zap className="w-4 h-4" /> Upgrade to Pro
         </Link>
+      </div>
       </div>
     </div>
   )

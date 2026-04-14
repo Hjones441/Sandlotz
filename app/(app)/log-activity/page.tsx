@@ -17,6 +17,7 @@ import {
 } from '@/lib/sandlotzScore'
 import { TERRA_APPS } from '@/lib/terra'
 import type { TerraActivity } from '@/lib/terra'
+import AppHeader from '@/components/layout/AppHeader'
 import {
   Zap, Upload, X, Heart, Flame, Footprints, Mountain, Timer,
   ChevronDown, ChevronUp, Image as ImageIcon, Link2, RefreshCw,
@@ -243,7 +244,7 @@ export default function LogActivityPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-16">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-10 h-10 rounded-full border-4 border-brand-yellow border-t-transparent animate-spin" />
       </div>
     )
@@ -341,12 +342,11 @@ export default function LogActivityPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-xl mx-auto px-4 pt-24 pb-28">
-
-      <motion.div variants={FADE_UP} initial="hidden" animate="show" className="mb-8">
-        <h1 className="text-3xl font-black text-white">Post Activity</h1>
-        <p className="text-white/50 text-sm mt-1">Log a workout and earn PlayerPoints</p>
-      </motion.div>
+    <div className="max-w-xl mx-auto pb-4">
+      <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
+        <AppHeader title="Post Activity" subtitle="Log a workout · earn PlayerPoints" />
+      </div>
+      <div className="px-4 pt-4 pb-24">
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -764,6 +764,7 @@ export default function LogActivityPage() {
         </motion.button>
 
       </form>
+      </div>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { getRankTier, getTierProgress, SPORT_OPTIONS, formatScore } from '@/lib/sandlotzScore'
 import NextLink from 'next/link'
+import AppHeader from '@/components/layout/AppHeader'
 import {
   Activity,
   Trophy,
@@ -75,7 +76,7 @@ export default function ProfilePage() {
 
   if (loading || !user || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-16">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-10 h-10 rounded-full border-4 border-brand-yellow border-t-transparent animate-spin" />
       </div>
     )
@@ -92,7 +93,16 @@ export default function ProfilePage() {
   const sportEmoji = SPORT_OPTIONS.find(s => s.value === profile.sport)?.emoji ?? '🏅'
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-24 pb-16">
+    <div className="max-w-4xl mx-auto pb-4">
+      <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
+        <AppHeader title="Profile" subtitle={`@${profile.displayName}`}
+          right={
+            <button onClick={handleShare} className="w-8 h-8 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center">
+              <Share2 className="w-4 h-4 text-white/50" />
+            </button>
+          } />
+      </div>
+      <div className="px-4 pt-4">
       <div className="flex flex-col lg:flex-row gap-6">
 
         {/* ── LEFT COLUMN (60%) ────────────────────────────────────────── */}
@@ -451,6 +461,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

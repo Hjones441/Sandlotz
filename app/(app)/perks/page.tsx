@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import { Gift, Star, Zap, Trophy, Clock, Lock, AlertCircle, ExternalLink } from 'lucide-react'
+import AppHeader from '@/components/layout/AppHeader'
 
 const PERK_CATEGORIES = ['All', 'Gear', 'Events', 'Services', 'Digital', 'Premium']
 
@@ -120,7 +121,12 @@ export default function PerksPage() {
   const filtered = PERKS.filter(p => activeCategory === 'All' || p.category === activeCategory)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pt-24 pb-16">
+    <div className="max-w-5xl mx-auto pb-4">
+      <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
+        <AppHeader title="Perks" subtitle="Redeem PlayerPoints for rewards"
+          right={<Gift className="w-5 h-5 text-brand-yellow" />} />
+      </div>
+      <div className="px-4 pt-4 pb-12">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
@@ -292,6 +298,7 @@ export default function PerksPage() {
           . Questions? Email{' '}
           <a href="mailto:support@sandlotz.com" className="text-yellow-400/60 hover:text-yellow-400 underline">support@sandlotz.com</a>
         </p>
+      </div>
       </div>
     </div>
   )
