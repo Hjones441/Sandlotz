@@ -1,28 +1,35 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { Eye, EyeOff, Chrome } from 'lucide-react'
 
 export default function LoginPage() {
-  const { signIn, signInGoogle } = useAuth()
+  const { user, loading, signIn, signInGoogle } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const from = searchParams.get('from') ?? '/dashboard'
 
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [showPw,   setShowPw]   = useState(false)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  // If already authenticated, go straight to the app
+  useEffect(() => {
+    if (!loading && user) router.replace(from)
+  }, [user, loading, router, from])
+
+  const [email,       setEmail]       = useState('')
+  const [password,    setPassword]    = useState('')
+  const [showPw,      setShowPw]      = useState(false)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [error,       setError]       = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setLoading(true)
+    setSubmitting(true)
     try {
       await signIn(email, password)
-      router.push('/dashboard')
+      router.push(from)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign-in failed. Check your email and password.'
       if (message === 'UNVERIFIED_EMAIL') {
@@ -36,20 +43,20 @@ export default function LoginPage() {
           : message
       )
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   async function handleGoogle() {
     setError('')
-    setLoading(true)
+    setSubmitting(true)
     try {
       await signInGoogle()
-      router.push('/dashboard')
+      router.push(from)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -63,7 +70,7 @@ export default function LoginPage() {
           {/* Google sign-in */}
           <button
             onClick={handleGoogle}
-            disabled={loading}
+            disabled={submitting}
             className="w-full flex items-center justify-center gap-3 btn-ghost mb-6"
           >
             <Chrome className="w-5 h-5 text-brand-yellow" />
@@ -118,8 +125,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
-              {loading ? 'Signing in…' : 'Sign In'}
+            <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">
+              {submitting ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 

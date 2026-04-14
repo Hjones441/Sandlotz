@@ -30,13 +30,21 @@ export default function HomePage() {
         </p>
 
         <div className="relative flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/signup" className="btn-primary text-center">
+          <Link href="/signup" className="btn-primary text-center text-lg px-8 py-4">
             Start Competing — It&apos;s Free
           </Link>
-          <Link href="/leaderboard" className="btn-ghost text-center">
-            View Leaderboard
+          <Link href="/login" className="btn-ghost text-center text-lg px-8 py-4">
+            Open App
           </Link>
         </div>
+
+        {/* App badge */}
+        <p className="relative mt-6 text-white/30 text-xs tracking-wide">
+          Already have an account?{' '}
+          <Link href="/login" className="text-brand-yellow/70 hover:text-brand-yellow underline transition-colors">
+            Sign in → Dashboard
+          </Link>
+        </p>
 
         {/* Stats row */}
         <div className="relative mt-16 grid grid-cols-3 gap-6 max-w-md mx-auto">

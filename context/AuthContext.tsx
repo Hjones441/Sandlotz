@@ -48,8 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u) {
+        // Set a short-lived cookie so Next.js middleware can detect auth state
+        // for server-side routing (/ → /dashboard, app routes → /login).
+        // The Firebase token is NOT stored here — this is a routing hint only.
+        document.cookie = 'sl-auth=1; path=/; max-age=604800; SameSite=Lax'
         await loadProfile(u)
       } else {
+        document.cookie = 'sl-auth=; path=/; max-age=0'
         setProfile(null)
       }
       setLoading(false)
