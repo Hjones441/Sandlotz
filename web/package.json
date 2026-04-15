@@ -1,27 +1,19 @@
 {
-  "name": "sandlotz",
+  "name": "sandlotz-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.86.0",
-    "@sentry/nextjs": "^10.44.0",
-    "@tanstack/react-query": "^5.91.0",
-    "@types/nodemailer": "^7.0.11",
     "firebase": "^10.12.0",
-    "framer-motion": "^12.38.0",
     "lucide-react": "^0.400.0",
     "next": "14.2.5",
-    "nodemailer": "^8.0.4",
-    "posthog-js": "^1.362.0",
     "react": "^18",
-    "react-dom": "^18",
-    "zustand": "^5.0.12"
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",

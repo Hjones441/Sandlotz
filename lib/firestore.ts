@@ -15,6 +15,8 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { calculateActivityScore, SportType } from './sandlotzScore'
+import type { ScoringFitnessData, ScoreBreakdown } from './sandlotzScore'
+import { calculateActivityScoreDetailed } from './sandlotzScore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +31,16 @@ export interface UserProfile {
   createdAt:   Timestamp
 }
 
+export interface FitnessData {
+  source:       string          // e.g. 'Strava', 'Garmin', 'Apple Health', 'Manual'
+  heartRateAvg?: number
+  heartRateMax?: number
+  calories?:    number
+  steps?:       number
+  pace?:        string          // e.g. '5:30 /km'
+  elevationGain?: number
+}
+
 export interface Activity {
   id?:             string
   uid:             string
@@ -37,7 +49,10 @@ export interface Activity {
   distanceKm:      number
   intensity:       number
   score:           number
+  scoreBreakdown?: ScoreBreakdown
   notes:           string
+  imageUrls?:      string[]
+  fitnessData?:    FitnessData
   createdAt:       Timestamp
 }
 
@@ -94,11 +109,22 @@ export async function logActivity(params: {
   city:            string
   displayName:     string
   photoURL:        string | null
+  imageUrls?:      string[]
+  fitnessData?:    FitnessData
 }): Promise<number> {
-  const { uid, sport, durationMinutes, distanceKm, intensity, notes, city, displayName, photoURL } = params
-  const score = calculateActivityScore(sport, durationMinutes, distanceKm, intensity)
+  const { uid, sport, durationMinutes, distanceKm, intensity, notes, city, displayName, photoURL, imageUrls, fitnessData } = params
+  const scoringFitness: ScoringFitnessData | undefined = fitnessData
+    ? {
+        source:        fitnessData.source,
+        heartRateAvg:  fitnessData.heartRateAvg,
+        elevationGain: fitnessData.elevationGain,
+        calories:      fitnessData.calories,
+      }
+    : undefined
+  const breakdown = calculateActivityScoreDetailed(sport, durationMinutes, distanceKm, intensity, scoringFitness)
+  const score     = breakdown.total
 
-  // Write activity document
+  // Write activity document with full score breakdown for audit trail
   await addDoc(collection(db, 'activities'), {
     uid,
     sport,
@@ -106,7 +132,18 @@ export async function logActivity(params: {
     distanceKm,
     intensity,
     score,
+    scoreBreakdown: {
+      basePoints:     breakdown.basePoints,
+      distanceBonus:  breakdown.distanceBonus,
+      elevationBonus: breakdown.elevationBonus,
+      caloriesBonus:  breakdown.caloriesBonus,
+      hrMultiplier:   breakdown.hrMultiplier,
+      sourceVerified: breakdown.sourceVerified,
+      durationDamped: breakdown.durationDamped,
+    },
     notes,
+    ...(imageUrls && imageUrls.length > 0 && { imageUrls }),
+    ...(fitnessData && { fitnessData }),
     createdAt: serverTimestamp(),
   })
 
