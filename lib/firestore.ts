@@ -11,6 +11,7 @@ import {
   getDocs,
   serverTimestamp,
   increment,
+  limit,
   Timestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
@@ -28,22 +29,25 @@ export interface UserProfile {
   sport:       string
   city:        string
   totalScore:  number
+  bio?:        string
   createdAt:   Timestamp
 }
 
 export interface FitnessData {
-  source:       string          // e.g. 'Strava', 'Garmin', 'Apple Health', 'Manual'
-  heartRateAvg?: number
-  heartRateMax?: number
-  calories?:    number
-  steps?:       number
-  pace?:        string          // e.g. '5:30 /km'
+  source:         string
+  heartRateAvg?:  number
+  heartRateMax?:  number
+  calories?:      number
+  steps?:         number
+  pace?:          string
   elevationGain?: number
 }
 
 export interface Activity {
   id?:             string
   uid:             string
+  displayName?:    string
+  photoURL?:       string | null
   sport:           string
   durationMinutes: number
   distanceKm:      number
@@ -65,6 +69,19 @@ export interface LeaderboardEntry {
   rank?:       number
 }
 
+export interface Listing {
+  id?:         string
+  uid:         string
+  displayName: string
+  title:       string
+  desc:        string
+  category:    'Gear' | 'Events' | 'Players' | 'Services'
+  price:       string | null
+  location:    string
+  active:      boolean
+  createdAt:   Timestamp
+}
+
 // ─── User Operations ──────────────────────────────────────────────────────────
 
 export async function createUserProfile(
@@ -80,6 +97,7 @@ export async function createUserProfile(
     sport:       data.sport ?? 'other',
     city:        data.city ?? 'Columbus',
     totalScore:  0,
+    bio:         '',
     createdAt:   serverTimestamp(),
   })
 }
@@ -124,9 +142,11 @@ export async function logActivity(params: {
   const breakdown = calculateActivityScoreDetailed(sport, durationMinutes, distanceKm, intensity, scoringFitness)
   const score     = breakdown.total
 
-  // Write activity document with full score breakdown for audit trail
+  // Write activity — include displayName/photoURL for community feed queries
   await addDoc(collection(db, 'activities'), {
     uid,
+    displayName,
+    photoURL,
     sport,
     durationMinutes,
     distanceKm,
@@ -177,6 +197,17 @@ export async function getUserActivities(uid: string): Promise<Activity[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Activity))
 }
 
+// Fetch recent activities from ALL users — used for the community feed
+export async function getRecentActivities(limitN: number = 30): Promise<Activity[]> {
+  const q = query(
+    collection(db, 'activities'),
+    orderBy('createdAt', 'desc'),
+    limit(limitN),
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Activity))
+}
+
 // ─── Leaderboard Operations ───────────────────────────────────────────────────
 
 export async function getLeaderboard(
@@ -194,4 +225,31 @@ export async function getLeaderboard(
   }
 
   return entries.map((e, i) => ({ ...e, rank: i + 1 }))
+}
+
+// ─── Marketplace Listings ─────────────────────────────────────────────────────
+
+export async function createListing(
+  data: Omit<Listing, 'id' | 'createdAt'>,
+): Promise<string> {
+  const ref = await addDoc(collection(db, 'listings'), {
+    ...data,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getListings(category?: string): Promise<Listing[]> {
+  const q    = query(
+    collection(db, 'listings'),
+    where('active', '==', true),
+    orderBy('createdAt', 'desc'),
+    limit(60),
+  )
+  const snap = await getDocs(q)
+  let listings = snap.docs.map(d => ({ id: d.id, ...d.data() } as Listing))
+  if (category && category !== 'All') {
+    listings = listings.filter(l => l.category === category)
+  }
+  return listings
 }

@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { getUserActivities, Activity } from '@/lib/firestore'
+import { getUserActivities, getRecentActivities, Activity } from '@/lib/firestore'
 import { SPORT_OPTIONS, INTENSITY_LABELS, getRankTier, formatScore } from '@/lib/sandlotzScore'
 import {
   Zap, Clock, Ruler, MapPin, Heart, Bookmark,
-  ChevronRight, Bot, RefreshCw, Lightbulb, Bell, Star,
+  ChevronRight, Bot, RefreshCw, Lightbulb, Bell, Star, Users,
 } from 'lucide-react'
 import { ActivityCardSkeleton } from '@/components/ui/Skeleton'
 
@@ -22,6 +22,7 @@ function formatDuration(mins: number) {
 function timeAgo(ts: { seconds: number } | undefined): string {
   if (!ts) return ''
   const d = Date.now() / 1000 - ts.seconds
+  if (d < 60)    return 'just now'
   if (d < 3600)  return `${Math.floor(d / 60)}m ago`
   if (d < 86400) return `${Math.floor(d / 3600)}h ago`
   return `${Math.floor(d / 86400)}d ago`
@@ -32,13 +33,26 @@ function getGreeting() {
   return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'
 }
 
-const FEED = [
-  { id:'1', name:'Marcus R.',  av:'M', emoji:'🏃', action:'Morning 10k',      stats:'10km · 47min · 152bpm', pts:182, time:'4m',  likes:11 },
-  { id:'2', name:'Sierra T.',  av:'S', emoji:'🏋️', action:'Leg Day PR',       stats:'60min · intensity 5',   pts:95,  time:'12m', likes:7  },
-  { id:'3', name:'Devon K.',   av:'D', emoji:'🚴', action:'25mi Group Ride',  stats:'40km · 1h 38m · Garmin',pts:210, time:'38m', likes:14 },
-  { id:'4', name:'Aisha W.',   av:'A', emoji:'🏊', action:'Masters Swim Set', stats:'2.0km · 52min · Whoop', pts:300, time:'1h',  likes:22 },
-  { id:'5', name:'Jake M.',    av:'J', emoji:'⚡', action:'HIIT Bootcamp',    stats:'45min · 520 kcal',      pts:140, time:'2h',  likes:9  },
-]
+// Compute current streak from activities sorted desc
+function calcStreak(acts: Activity[]): number {
+  if (acts.length === 0) return 0
+  const todayMs = new Date().setHours(0, 0, 0, 0)
+  const days = new Set(acts.map(a => {
+    const d = new Date((a.createdAt as any).seconds * 1000)
+    return new Date(d.setHours(0, 0, 0, 0)).getTime()
+  }))
+  let streak = 0
+  let check  = todayMs
+  if (!days.has(check)) {
+    check = todayMs - 86400000
+    if (!days.has(check)) return 0
+  }
+  while (days.has(check)) {
+    streak++
+    check -= 86400000
+  }
+  return streak
+}
 
 const CHALLENGES = [
   { id:'1', title:'June Run Streak',  sport:'🏃', target:'30 days running',  reward:'500 PP', joined:false, pct:0  },
@@ -106,26 +120,84 @@ function ChallengeCard({ c }: { c: typeof CHALLENGES[0] }) {
   )
 }
 
+// A single activity card for the community feed
+function FeedCard({ act, isMe }: { act: Activity; isMe: boolean }) {
+  const sp   = SPORT_OPTIONS.find(s => s.value === act.sport)
+  const name = act.displayName ?? 'Athlete'
+  const av   = name[0]?.toUpperCase() ?? '?'
+
+  const stats: string[] = []
+  if (act.durationMinutes) stats.push(formatDuration(act.durationMinutes))
+  if (act.distanceKm > 0)  stats.push(`${act.distanceKm}km`)
+  if (act.fitnessData?.heartRateAvg) stats.push(`${act.fitnessData.heartRateAvg}bpm`)
+  if (act.fitnessData?.source && act.fitnessData.source !== 'Manual') stats.push(act.fitnessData.source)
+
+  return (
+    <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4">
+      <div className="flex items-start gap-3">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 ${
+          isMe ? 'bg-brand-yellow text-brand-purple-dark' : 'bg-brand-purple border border-white/10 text-brand-yellow'
+        }`}>
+          {av}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between">
+            <p className="font-bold text-sm">{name}{isMe && <span className="text-[10px] text-white/30 ml-1">(you)</span>}</p>
+            <span className="text-[10px] text-white/25 ml-2 flex-shrink-0">{timeAgo(act.createdAt as any)}</span>
+          </div>
+          <p className="text-sm text-white/80 mt-0.5">
+            {sp?.emoji ?? '🏅'} {sp?.label ?? act.sport}
+          </p>
+          {stats.length > 0 && (
+            <p className="text-[11px] text-white/30 mt-0.5">{stats.join(' · ')}</p>
+          )}
+          {act.notes && (
+            <p className="text-[11px] text-white/50 mt-1 italic line-clamp-1">"{act.notes}"</p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.05]">
+        <div className="flex items-center gap-3">
+          <LikeBtn initial={Math.floor(Math.random() * 15)} />
+          <SaveBtn />
+        </div>
+        <div className="flex items-center gap-1 bg-brand-yellow/10 rounded-full px-2.5 py-1">
+          <Zap className="w-3 h-3 text-brand-yellow" />
+          <span className="text-brand-yellow text-[11px] font-black">+{act.score}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 type Tab = 'feed' | 'mine' | 'challenges'
 
 export default function DashboardPage() {
   const { user, profile, loading } = useAuth()
   const router = useRouter()
 
-  const [tab,       setTab]       = useState<Tab>('feed')
-  const [acts,      setActs]      = useState<Activity[]>([])
-  const [fetching,  setFetching]  = useState(true)
-  const [aiInsight, setAiInsight] = useState<string | null>(null)
-  const [aiTips,    setAiTips]    = useState<string[]>([])
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiOpen,    setAiOpen]    = useState(false)
+  const [tab,          setTab]          = useState<Tab>('feed')
+  const [myActs,       setMyActs]       = useState<Activity[]>([])
+  const [feed,         setFeed]         = useState<Activity[]>([])
+  const [fetching,     setFetching]     = useState(true)
+  const [feedFetching, setFeedFetching] = useState(true)
+  const [aiInsight,    setAiInsight]    = useState<string | null>(null)
+  const [aiTips,       setAiTips]       = useState<string[]>([])
+  const [aiLoading,    setAiLoading]    = useState(false)
+  const [aiOpen,       setAiOpen]       = useState(false)
 
   useEffect(() => { if (!loading && !user) router.replace('/login') }, [user, loading, router])
 
+  // Load my activities
   useEffect(() => {
     if (!user) return
-    getUserActivities(user.uid).then(a => { setActs(a); setFetching(false) })
+    getUserActivities(user.uid).then(a => { setMyActs(a); setFetching(false) })
   }, [user])
+
+  // Load community feed
+  useEffect(() => {
+    getRecentActivities(30).then(a => { setFeed(a); setFeedFetching(false) })
+  }, [])
 
   const fetchAI = useCallback(async (a: Activity[]) => {
     if (!profile || aiInsight !== null) return
@@ -140,7 +212,7 @@ export default function DashboardPage() {
     } catch { /* silent */ } finally { setAiLoading(false) }
   }, [profile, aiInsight])
 
-  useEffect(() => { if (!fetching) fetchAI(acts) }, [fetching, acts, fetchAI])
+  useEffect(() => { if (!fetching) fetchAI(myActs) }, [fetching, myActs, fetchAI])
 
   if (loading || !user) {
     return <div className="min-h-screen flex items-center justify-center">
@@ -150,13 +222,14 @@ export default function DashboardPage() {
 
   const tier    = getRankTier(profile?.totalScore ?? 0)
   const name    = profile?.displayName?.split(' ')[0] ?? 'Athlete'
-  const totMins = acts.reduce((s, a) => s + a.durationMinutes, 0)
-  const totKm   = acts.reduce((s, a) => s + a.distanceKm, 0)
+  const totMins = myActs.reduce((s, a) => s + a.durationMinutes, 0)
+  const totKm   = myActs.reduce((s, a) => s + a.distanceKm, 0)
+  const streak  = calcStreak(myActs)
 
   return (
     <div className="max-w-lg mx-auto">
 
-      {/* ── Sticky App Header ─────────────────────────────────────────── */}
+      {/* ── Sticky App Header ── */}
       <div className="sticky top-0 z-30 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
         <div className="px-4 pt-4 pb-0">
 
@@ -170,10 +243,9 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="w-9 h-9 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center relative">
+              <Link href="/notifications" className="w-9 h-9 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center relative">
                 <Bell className="w-4 h-4 text-white/40" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-brand-yellow rounded-full" />
-              </button>
+              </Link>
               <Link href="/profile" className="w-9 h-9 rounded-xl bg-brand-purple flex items-center justify-center font-black text-sm text-brand-yellow border border-white/10">
                 {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
               </Link>
@@ -183,10 +255,10 @@ export default function DashboardPage() {
           {/* Stat pills */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3">
             {[
-              { icon: <Zap   className="w-3 h-3" />, v: String(acts.length),          l: 'Activities' },
-              { icon: <Clock className="w-3 h-3" />, v: formatDuration(totMins),       l: 'Active time' },
-              { icon: <Ruler className="w-3 h-3" />, v: `${totKm.toFixed(0)}km`,       l: 'Distance'   },
-              { icon: <MapPin className="w-3 h-3"/>, v: profile?.city ?? 'Local',      l: 'City'       },
+              { icon: <Zap   className="w-3 h-3" />, v: String(myActs.length),     l: 'Activities' },
+              { icon: <Clock className="w-3 h-3" />, v: formatDuration(totMins),    l: 'Active time' },
+              { icon: <Ruler className="w-3 h-3" />, v: `${totKm.toFixed(0)}km`,    l: 'Distance'   },
+              { icon: <MapPin className="w-3 h-3"/>, v: `${streak}🔥`,              l: 'Streak'     },
             ].map(s => (
               <div key={s.l} className="flex items-center gap-1.5 bg-white/[0.05] rounded-full px-3 py-1.5 flex-shrink-0 border border-white/[0.06]">
                 <span className="text-brand-yellow">{s.icon}</span>
@@ -213,7 +285,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Scrollable body ────────────────────────────────────────────── */}
+      {/* ── Scrollable body ── */}
       <div className="px-4 pt-4 space-y-4">
 
         {/* AI Coach card */}
@@ -230,7 +302,7 @@ export default function DashboardPage() {
               }
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={e => { e.stopPropagation(); fetchAI(acts) }} disabled={aiLoading} className="text-white/20 hover:text-white/50">
+              <button onClick={e => { e.stopPropagation(); setAiInsight(null); fetchAI(myActs) }} disabled={aiLoading} className="text-white/20 hover:text-white/50">
                 <RefreshCw className={`w-3 h-3 ${aiLoading?'animate-spin':''}`} />
               </button>
               <ChevronRight className={`w-3.5 h-3.5 text-white/20 transition-transform ${aiOpen?'rotate-90':''}`} />
@@ -252,48 +324,40 @@ export default function DashboardPage() {
           </AnimatePresence>
         </motion.div>
 
-        {/* ── FEED ──────────────────────────────────────────────────── */}
+        {/* ── TABS ── */}
         <AnimatePresence mode="wait">
+
+          {/* COMMUNITY FEED */}
           {tab === 'feed' && (
             <motion.div key="feed" initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:0.15 }} className="space-y-3">
-              {FEED.map((item, i) => (
-                <motion.div key={item.id} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.05 }}
-                  className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-full bg-brand-purple border border-white/10 flex items-center justify-center font-black text-sm text-brand-yellow flex-shrink-0">
-                      {item.av}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline justify-between">
-                        <p className="font-bold text-sm">{item.name}</p>
-                        <span className="text-[10px] text-white/25 ml-2">{item.time} ago</span>
-                      </div>
-                      <p className="text-sm text-white/80 mt-0.5">{item.emoji} {item.action}</p>
-                      <p className="text-[11px] text-white/30 mt-0.5">{item.stats}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.05]">
-                    <div className="flex items-center gap-3">
-                      <LikeBtn initial={item.likes} />
-                      <SaveBtn />
-                    </div>
-                    <div className="flex items-center gap-1 bg-brand-yellow/10 rounded-full px-2.5 py-1">
-                      <Zap className="w-3 h-3 text-brand-yellow" />
-                      <span className="text-brand-yellow text-[11px] font-black">+{item.pts}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              <p className="text-center text-white/15 text-xs py-4">All caught up</p>
+              {feedFetching ? (
+                <div className="space-y-3">{[0,1,2].map(i => <ActivityCardSkeleton key={i} />)}</div>
+              ) : feed.length === 0 ? (
+                <div className="text-center py-16">
+                  <Users className="w-12 h-12 text-white/10 mx-auto mb-3" />
+                  <p className="text-white/30 text-sm">No community activity yet.</p>
+                  <p className="text-white/20 text-xs mt-1">Be the first to log a workout!</p>
+                  <Link href="/log-activity" className="inline-block mt-4 btn-primary text-sm !py-2 !px-5">Log Activity</Link>
+                </div>
+              ) : (
+                <>
+                  {feed.map((act, i) => (
+                    <motion.div key={act.id ?? i} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.04 }}>
+                      <FeedCard act={act} isMe={act.uid === user.uid} />
+                    </motion.div>
+                  ))}
+                  <p className="text-center text-white/15 text-xs py-4">All caught up</p>
+                </>
+              )}
             </motion.div>
           )}
 
-          {/* ── MY ACTIVITY ─────────────────────────────────────────── */}
+          {/* MY ACTIVITY */}
           {tab === 'mine' && (
             <motion.div key="mine" initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:0.15 }}>
               {fetching ? (
                 <div className="space-y-3">{[0,1,2].map(i => <ActivityCardSkeleton key={i} />)}</div>
-              ) : acts.length === 0 ? (
+              ) : myActs.length === 0 ? (
                 <div className="text-center py-20">
                   <div className="text-5xl mb-4">🏃</div>
                   <p className="text-white/40 font-semibold mb-1">No activities yet</p>
@@ -302,7 +366,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {acts.slice(0, 20).map((a, i) => {
+                  {myActs.slice(0, 20).map((a, i) => {
                     const sp = SPORT_OPTIONS.find(s => s.value === a.sport)
                     return (
                       <motion.div key={a.id} initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.04 }}
@@ -311,7 +375,7 @@ export default function DashboardPage() {
                           {sp?.emoji ?? '🏅'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm capitalize">{a.sport}</p>
+                          <p className="font-bold text-sm capitalize">{sp?.label ?? a.sport}</p>
                           <p className="text-white/35 text-[11px]">
                             {formatDuration(a.durationMinutes)}{a.distanceKm > 0 ? ` · ${a.distanceKm}km` : ''} · {INTENSITY_LABELS[a.intensity]}
                           </p>
@@ -334,12 +398,12 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ── CHALLENGES ──────────────────────────────────────────── */}
+          {/* CHALLENGES */}
           {tab === 'challenges' && (
             <motion.div key="challenges" initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:0.15 }} className="space-y-3">
               {CHALLENGES.map(c => <ChallengeCard key={c.id} c={c} />)}
               <Link href="/perks" className="flex items-center justify-center gap-1.5 w-full py-4 rounded-2xl border border-white/[0.06] text-xs text-white/25 hover:text-white/50 transition-colors">
-                Browse all challenges <ChevronRight className="w-3 h-3" />
+                Browse all perks <ChevronRight className="w-3 h-3" />
               </Link>
             </motion.div>
           )}
