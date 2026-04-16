@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   Trophy, Zap, Gift, Users, TrendingUp, Star, HeartPulse,
   Mountain, Flame, CheckCircle2, ShieldCheck, BarChart2,
-  Smartphone, Globe, Building2, ArrowRight,
+  Smartphone, Globe, Building2, ArrowRight, ShoppingBag,
 } from 'lucide-react'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -69,9 +69,6 @@ const FOR_BRANDS = [
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-// This import is only used for the icon in the FEATURES array above
-import { ShoppingBag } from 'lucide-react'
 
 export default function HomePage() {
   return (

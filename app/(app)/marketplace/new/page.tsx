@@ -8,7 +8,7 @@ import { createMarketplaceListing } from '@/lib/firestore'
 import type { ListingCondition, ListingCategory } from '@/lib/firestore'
 import AppHeader from '@/components/layout/AppHeader'
 import { SPORT_OPTIONS } from '@/lib/sandlotzScore'
-import { PlusCircle, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { PlusCircle, Loader2, CheckCircle2 } from 'lucide-react'
 
 const CONDITIONS: ListingCondition[] = ['New', 'Like New', 'Good', 'Fair']
 const CATEGORIES: ListingCategory[]  = ['Equipment', 'Apparel', 'Footwear', 'Accessories', 'Other']
@@ -76,13 +76,7 @@ export default function NewListingPage() {
   return (
     <div className="max-w-xl mx-auto pb-4">
       <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
-        <AppHeader title="Post Listing" subtitle="List gear for the Sandlotz community"
-          left={
-            <button onClick={() => router.back()} className="text-white/50 hover:text-white transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          }
-        />
+        <AppHeader title="Post Listing" subtitle="List gear for the Sandlotz community" back />
       </div>
       <div className="px-4 pt-4 pb-24">
         <form onSubmit={handleSubmit} className="space-y-5">
