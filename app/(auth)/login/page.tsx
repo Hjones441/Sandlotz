@@ -1,27 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { Eye, EyeOff, Chrome } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginForm() {
   const { user, loading, signIn, signInGoogle } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const from = searchParams.get('from') ?? '/dashboard'
 
-  // If already authenticated, go straight to the app
   useEffect(() => {
     if (!loading && user) router.replace(from)
   }, [user, loading, router, from])
 
-  const [email,       setEmail]       = useState('')
-  const [password,    setPassword]    = useState('')
-  const [showPw,      setShowPw]      = useState(false)
-  const [submitting,  setSubmitting]  = useState(false)
-  const [error,       setError]       = useState('')
+  const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
+  const [showPw,     setShowPw]     = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error,      setError]      = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -33,7 +32,6 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign-in failed. Check your email and password.'
       if (message === 'UNVERIFIED_EMAIL') {
-        // User is still signed in — send them to verify-email where they can resend
         router.push('/verify-email')
         return
       }
@@ -67,12 +65,8 @@ export default function LoginPage() {
           <h1 className="text-3xl font-black text-center mb-1">Welcome Back</h1>
           <p className="text-center text-white/50 text-sm mb-8">Sign in to your Sandlotz account</p>
 
-          {/* Google sign-in */}
-          <button
-            onClick={handleGoogle}
-            disabled={submitting}
-            className="w-full flex items-center justify-center gap-3 btn-ghost mb-6"
-          >
+          <button onClick={handleGoogle} disabled={submitting}
+            className="w-full flex items-center justify-center gap-3 btn-ghost mb-6">
             <Chrome className="w-5 h-5 text-brand-yellow" />
             Continue with Google
           </button>
@@ -86,45 +80,25 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-white/70 mb-2">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white
-                           placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors"
-              />
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors" />
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-white/70 mb-2">Password</label>
               <div className="relative">
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white
-                             placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
-                >
+                <input type={showPw ? 'text' : 'password'} required value={password}
+                  onChange={e => setPassword(e.target.value)} placeholder="••••••••"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors" />
+                <button type="button" onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70">
                   {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
-
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
-                {error}
-              </div>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
             )}
-
             <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">
               {submitting ? 'Signing in…' : 'Sign In'}
             </button>
@@ -132,12 +106,22 @@ export default function LoginPage() {
 
           <p className="text-center text-white/40 text-sm mt-6">
             No account?{' '}
-            <Link href="/signup" className="text-brand-yellow hover:underline font-semibold">
-              Create one free
-            </Link>
+            <Link href="/signup" className="text-brand-yellow hover:underline font-semibold">Create one free</Link>
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-[3px] border-brand-yellow border-t-transparent animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
