@@ -42,9 +42,9 @@ function toMs(a: Activity): number {
 
 function calcLongestStreak(acts: Activity[]): number {
   if (!acts.length) return 0
-  const days = [...new Set(acts.map(a => {
+  const days = Array.from(new Set(acts.map(a => {
     const d = new Date(toMs(a)); d.setHours(0, 0, 0, 0); return d.getTime()
-  }))].sort((a, b) => a - b)
+  }))).sort((a, b) => a - b)
   let longest = 1, cur = 1
   for (let i = 1; i < days.length; i++) {
     cur = days[i] - days[i - 1] === 86400000 ? cur + 1 : 1
