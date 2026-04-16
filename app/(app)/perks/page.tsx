@@ -159,7 +159,7 @@ export default function PerksPage() {
   async function handleRedeem(perk: typeof PERKS[0]) {
     if (!user) return
     await redeemPerk(user.uid, perk.id, perk.title, perk.cost)
-    setRedeemedIds(prev => new Set([...prev, perk.id]))
+    setRedeemedIds(prev => { const s = new Set(prev); s.add(perk.id); return s })
   }
 
   return (
