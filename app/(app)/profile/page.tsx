@@ -13,6 +13,9 @@ import {
   Trophy,
   Star,
   Zap,
+  Bot,
+  Lightbulb,
+  RefreshCw,
   Medal,
   Flame,
   TrendingUp,
@@ -69,8 +72,11 @@ export default function ProfilePage() {
   const router = useRouter()
   const [questTab, setQuestTab] = useState<QuestTab>('Daily')
   const [shareMsg, setShareMsg] = useState('')
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [activities,  setActivities]  = useState<Activity[]>([])
   const [actsLoading, setActsLoading] = useState(true)
+  const [aiInsight,   setAiInsight]   = useState<string | null>(null)
+  const [aiTips,      setAiTips]      = useState<string[]>([])
+  const [aiLoading,   setAiLoading]   = useState(false)
 
   function handleShare() {
     const url = window.location.href
@@ -89,12 +95,29 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) return
-    getUserActivities(user.uid)
-      .then(acts => { setActivities(acts); setActsLoading(false) })
-      .catch(() => setActsLoading(false))
-  }, [user])
+    getUserActivities(user.uid).then(acts => {
+      setActivities(acts)
+      setActsLoading(false)
+      if (acts.length > 0 && profile) {
+        setAiLoading(true)
+        fetch('/api/ai-coach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activities: acts.slice(0, 10),
+            totalScore: profile.totalScore,
+            tier: getRankTier(profile.totalScore).label,
+          }),
+        })
+          .then(r => r.json())
+          .then(d => { if (d.insight) { setAiInsight(d.insight); setAiTips(d.tips ?? []) } })
+          .catch(() => {})
+          .finally(() => setAiLoading(false))
+      }
+    }).catch(() => setActsLoading(false))
+  }, [user, profile])
 
-  const { weekBarHeights, currentStreak, longestStreak, maxCalAct, activeSports, quests } = useMemo(() => {
+  const { weekBarHeights, currentStreak, longestStreak, maxCalAct, activeSports, quests, avgHR, totalCalories, recentVerified } = useMemo(() => {
     const now = new Date()
     const weekBarHeights = calcWeekBars(activities)
 
@@ -153,7 +176,11 @@ export default function ProfilePage() {
       ],
     }
 
-    return { weekBarHeights, currentStreak, longestStreak, maxCalAct, activeSports, quests }
+    const recentVerified = activities.find(a => a.fitnessData?.source && a.fitnessData.source !== 'Manual')
+    const avgHR          = recentVerified?.fitnessData?.heartRateAvg ?? null
+    const totalCalories  = activities.reduce((s, a) => s + (a.fitnessData?.calories ?? 0), 0)
+
+    return { weekBarHeights, currentStreak, longestStreak, maxCalAct, activeSports, quests, avgHR, totalCalories, recentVerified }
   }, [activities])
 
   const badges = useMemo(() => [
@@ -359,18 +386,60 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* AI-Powered Digest */}
+            {/* AI Coach Digest */}
             <div className="sz-card p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">✨</span>
-                <span className="font-bold text-white">Your AI-Powered Digest</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-yellow-400" />
+                  <span className="font-bold text-white">AI Coach Digest</span>
+                </div>
+                {aiInsight && (
+                  <button
+                    onClick={() => {
+                      if (!profile || activities.length === 0) return
+                      setAiLoading(true); setAiInsight(null); setAiTips([])
+                      fetch('/api/ai-coach', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ activities: activities.slice(0,10), totalScore: profile.totalScore, tier: getRankTier(profile.totalScore).label }),
+                      }).then(r=>r.json()).then(d=>{ if(d.insight){setAiInsight(d.insight);setAiTips(d.tips??[])} }).catch(()=>{}).finally(()=>setAiLoading(false))
+                    }}
+                    disabled={aiLoading}
+                    className="text-white/20 hover:text-white/50 transition-colors"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                )}
               </div>
-              <p className="text-white/40 text-xs mb-4 leading-relaxed">
-                Personalized suggestions to help you play, train, and connect. This is for informational purposes only, not medical advice.
-              </p>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                <p className="text-white/40 text-sm">Complete your profile to get personalized tips!</p>
-              </div>
+              <p className="text-white/30 text-xs mb-4">Personalized to your recent training. Not medical advice.</p>
+
+              {aiLoading ? (
+                <div className="space-y-2">
+                  <div className="h-3 bg-white/10 rounded-full animate-pulse w-full" />
+                  <div className="h-3 bg-white/10 rounded-full animate-pulse w-4/5" />
+                  <div className="h-3 bg-white/10 rounded-full animate-pulse w-3/4 mb-4" />
+                  <div className="h-2 bg-white/5 rounded-full animate-pulse w-full" />
+                  <div className="h-2 bg-white/5 rounded-full animate-pulse w-5/6" />
+                </div>
+              ) : aiInsight ? (
+                <div>
+                  <p className="text-white/80 text-sm leading-relaxed mb-4 border-l-2 border-yellow-400/40 pl-3">{aiInsight}</p>
+                  {aiTips.length > 0 && (
+                    <div className="space-y-2.5">
+                      {aiTips.map((tip, i) => (
+                        <div key={i} className="flex items-start gap-2.5 bg-white/[0.03] rounded-xl p-3">
+                          <Lightbulb className="w-3.5 h-3.5 text-yellow-400/70 mt-0.5 shrink-0" />
+                          <p className="text-white/55 text-xs leading-relaxed">{tip}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <Bot className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                  <p className="text-white/30 text-sm">Log activities to unlock your personalized AI coaching digest.</p>
+                </div>
+              )}
             </div>
 
             {/* Featured Items */}
@@ -432,15 +501,31 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
                   <HeartPulse className="w-5 h-5 text-red-400 mx-auto mb-1" />
-                  <p className="text-3xl font-black text-white">—</p>
-                  <p className="text-white/40 text-xs mt-1 leading-tight">Resting Heart Rate</p>
-                  <span className="inline-block mt-2 bg-white/10 text-white/30 text-xs px-2 py-0.5 rounded-full">Link Device</span>
+                  <p className="text-3xl font-black text-white">{avgHR ?? '—'}</p>
+                  <p className="text-white/40 text-xs mt-1 leading-tight">
+                    {avgHR ? 'Last Avg HR (bpm)' : 'Avg Heart Rate'}
+                  </p>
+                  {avgHR ? (
+                    <span className="inline-block mt-2 bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">
+                      ✓ {recentVerified?.fitnessData?.source}
+                    </span>
+                  ) : (
+                    <span className="inline-block mt-2 bg-white/10 text-white/30 text-xs px-2 py-0.5 rounded-full">Link Device</span>
+                  )}
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
                   <Wind className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-                  <p className="text-3xl font-black text-white">—</p>
-                  <p className="text-white/40 text-xs mt-1 leading-tight">VO2 Max</p>
-                  <span className="inline-block mt-2 bg-white/10 text-white/30 text-xs px-2 py-0.5 rounded-full">Link Device</span>
+                  <p className="text-3xl font-black text-white">
+                    {totalCalories > 0 ? `${(totalCalories / 1000).toFixed(1)}k` : '—'}
+                  </p>
+                  <p className="text-white/40 text-xs mt-1 leading-tight">
+                    {totalCalories > 0 ? 'Total Kcal Burned' : 'Calories Burned'}
+                  </p>
+                  {totalCalories > 0 ? (
+                    <span className="inline-block mt-2 bg-yellow-400/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full">All time</span>
+                  ) : (
+                    <span className="inline-block mt-2 bg-white/10 text-white/30 text-xs px-2 py-0.5 rounded-full">Log activities</span>
+                  )}
                 </div>
               </div>
 

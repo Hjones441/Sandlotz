@@ -6,10 +6,10 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { getUserActivities, getRecentActivities, Activity } from '@/lib/firestore'
-import { SPORT_OPTIONS, INTENSITY_LABELS, getRankTier, formatScore } from '@/lib/sandlotzScore'
+import { SPORT_OPTIONS, INTENSITY_LABELS, getRankTier, getTierProgress, formatScore } from '@/lib/sandlotzScore'
 import {
-  Zap, Clock, Ruler, MapPin, Heart, Bookmark,
-  ChevronRight, Bot, RefreshCw, Lightbulb, Bell, Star, Users,
+  Zap, Clock, Ruler, Flame, Heart, Bookmark,
+  ChevronRight, Bot, RefreshCw, Lightbulb, Bell, Star, Users, Target,
 } from 'lucide-react'
 import { ActivityCardSkeleton } from '@/components/ui/Skeleton'
 
@@ -252,13 +252,36 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* PlayerPath XP bar */}
+          {(() => {
+            const { pct, nextLabel, pointsToNext } = getTierProgress(profile?.totalScore ?? 0)
+            return (
+              <div className="mb-3 px-0.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-white/30 font-semibold tracking-wide">PLAYERPATH</span>
+                  <span className="text-[10px] text-white/25">
+                    {pointsToNext > 0 ? `${pointsToNext.toLocaleString()} pts → ${nextLabel}` : '🏆 Max Tier'}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
+                    className="h-full bg-gradient-to-r from-brand-yellow to-yellow-300 rounded-full"
+                  />
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Stat pills */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3">
             {[
               { icon: <Zap   className="w-3 h-3" />, v: String(myActs.length),     l: 'Activities' },
               { icon: <Clock className="w-3 h-3" />, v: formatDuration(totMins),    l: 'Active time' },
               { icon: <Ruler className="w-3 h-3" />, v: `${totKm.toFixed(0)}km`,    l: 'Distance'   },
-              { icon: <MapPin className="w-3 h-3"/>, v: `${streak}🔥`,              l: 'Streak'     },
+              { icon: <Flame className="w-3 h-3"/>, v: `${streak}🔥`,               l: 'Streak'     },
             ].map(s => (
               <div key={s.l} className="flex items-center gap-1.5 bg-white/[0.05] rounded-full px-3 py-1.5 flex-shrink-0 border border-white/[0.06]">
                 <span className="text-brand-yellow">{s.icon}</span>
@@ -287,6 +310,56 @@ export default function DashboardPage() {
 
       {/* ── Scrollable body ── */}
       <div className="px-4 pt-4 space-y-4">
+
+        {/* Daily Mission */}
+        {(() => {
+          const now = new Date()
+          const todayStart = new Date(now); todayStart.setHours(0,0,0,0)
+          const weekStart  = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0)
+          const todayActs  = myActs.filter(a => new Date((a.createdAt as any).seconds * 1000) >= todayStart)
+          const weekCount  = myActs.filter(a => new Date((a.createdAt as any).seconds * 1000) >= weekStart).length
+          const weekDist   = myActs.filter(a => new Date((a.createdAt as any).seconds * 1000) >= weekStart && (a.sport==='running'||a.sport==='cycling')).reduce((s,a)=>s+a.distanceKm,0)
+
+          let mission: { title:string; desc:string; pp:number; progress?:[number,number]; done?:boolean } | null = null
+
+          if (todayActs.length === 0)
+            mission = { title:'Log Today\'s Activity', desc:'Keep your streak alive — every day counts.', pp:25 }
+          else if (weekCount < 3)
+            mission = { title:'Weekend Warrior', desc:'Log 3 activities this week for a bonus.', pp:75, progress:[weekCount,3] }
+          else if (weekDist < 20)
+            mission = { title:'Distance Chaser', desc:'Run or cycle 20 km this week.', pp:100, progress:[+weekDist.toFixed(1),20] }
+          else
+            mission = { title:'All Weekly Missions Complete', desc:'You\'re crushing it this week!', pp:0, done:true }
+
+          if (!mission) return null
+          const pct = mission.progress ? Math.round((mission.progress[0]/mission.progress[1])*100) : mission.done ? 100 : 0
+          return (
+            <div className={`rounded-2xl p-4 border ${mission.done ? 'bg-green-500/10 border-green-500/20' : 'bg-brand-yellow/8 border-brand-yellow/15'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Target className={`w-4 h-4 ${mission.done ? 'text-green-400' : 'text-brand-yellow'}`} />
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${mission.done ? 'text-green-400' : 'text-brand-yellow'}`}>Daily Mission</span>
+                </div>
+                {mission.pp > 0 && (
+                  <div className="flex items-center gap-1 bg-brand-yellow/10 rounded-full px-2.5 py-0.5">
+                    <Star className="w-3 h-3 text-brand-yellow" />
+                    <span className="text-brand-yellow text-[10px] font-black">+{mission.pp} PP</span>
+                  </div>
+                )}
+              </div>
+              <p className="font-bold text-sm text-white mb-0.5">{mission.title}</p>
+              <p className="text-[11px] text-white/40 mb-2">{mission.desc}</p>
+              {mission.progress && (
+                <>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mb-1">
+                    <div className="h-full bg-brand-yellow rounded-full transition-all" style={{ width:`${pct}%` }} />
+                  </div>
+                  <p className="text-[10px] text-white/30">{mission.progress[0]} / {mission.progress[1]}</p>
+                </>
+              )}
+            </div>
+          )
+        })()}
 
         {/* AI Coach card */}
         <motion.div layout className="rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.03]">

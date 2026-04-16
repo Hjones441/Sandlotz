@@ -239,6 +239,12 @@ export async function createListing(
   return ref.id
 }
 
+export async function redeemPerk(uid: string, perkId: string, perkTitle: string, cost: number): Promise<void> {
+  await addDoc(collection(db, 'redemptions'), {
+    uid, perkId, perkTitle, cost, createdAt: serverTimestamp(),
+  })
+}
+
 export async function getListings(category?: string): Promise<Listing[]> {
   const q    = query(
     collection(db, 'listings'),
