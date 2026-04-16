@@ -1,78 +1,219 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { getRankTier, getTierProgress, SPORT_OPTIONS, formatScore } from '@/lib/sandlotzScore'
-import NextLink from 'next/link'
+import {
+  getUserActivities, getUserRedemptions, getPerks,
+  Activity, Redemption,
+} from '@/lib/firestore'
+import type { Perk } from '@/lib/firestore'
+import { getRankTier, getTierProgress, SPORT_OPTIONS, INTENSITY_LABELS, formatScore, TIER_THRESHOLDS } from '@/lib/sandlotzScore'
 import AppHeader from '@/components/layout/AppHeader'
 import {
-  Activity,
-  Trophy,
-  Star,
-  Zap,
-  Medal,
-  Flame,
-  TrendingUp,
-  ShoppingCart,
-  Gift,
-  Target,
-  Share2,
-  Settings,
-  LogOut,
-  ExternalLink,
-  Wind,
-  HeartPulse,
-  MapPin,
-  Users,
+  Zap, Flame, Trophy, Star, Gift, TrendingUp, Activity as ActivityIcon,
+  Clock, Ruler, MapPin, Share2, Settings, LogOut, ChevronRight,
+  CheckCircle2, Lock, Bot, Loader2, Target, ShoppingBag,
 } from 'lucide-react'
 
-// ─── Quest tab state ────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type QuestTab = 'Daily' | 'Weekly' | 'Monthly'
-
-const QUESTS: Record<QuestTab, { title: string; desc: string; pp: number; inProgress?: boolean; progress?: [number, number] }[]> = {
-  Daily: [
-    { title: 'Morning Hustle', desc: 'Log any activity before 10 AM', pp: 25 },
-    { title: 'Calorie Burn', desc: 'Burn at least 500 calories today', pp: 50, inProgress: true, progress: [320, 500] },
-  ],
-  Weekly: [
-    { title: 'Weekend Warrior', desc: 'Log 3 activities this week', pp: 75 },
-    { title: 'Distance Chaser', desc: 'Run or cycle 20 km this week', pp: 100, inProgress: true, progress: [12, 20] },
-  ],
-  Monthly: [
-    { title: 'Consistency King', desc: 'Log an activity 15 days this month', pp: 200 },
-    { title: 'Sport Sampler', desc: 'Try 3 different sports this month', pp: 150, inProgress: true, progress: [1, 3] },
-  ],
+function formatDuration(mins: number) {
+  if (mins < 60) return `${mins}m`
+  const h = Math.floor(mins / 60), m = mins % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-// ─── Bar chart heights ───────────────────────────────────────────────────────
+function timeAgo(ts: { seconds: number } | undefined): string {
+  if (!ts) return ''
+  const d = Date.now() / 1000 - ts.seconds
+  if (d < 3600)  return `${Math.floor(d / 60)}m ago`
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`
+  return `${Math.floor(d / 86400)}d ago`
+}
 
-const BAR_HEIGHTS = [60, 80, 100, 100, 70, 90, 75]
-const BAR_DAYS = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa']
+function computeStreak(activities: Activity[]): number {
+  if (activities.length === 0) return 0
+  const dateSet = new Set<string>()
+  activities.forEach(a => {
+    const ts = a.createdAt as unknown as { seconds: number }
+    if (ts?.seconds) {
+      const d = new Date(ts.seconds * 1000)
+      dateSet.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`)
+    }
+  })
+  const sorted = Array.from(dateSet).sort().reverse()
+  if (sorted.length === 0) return 0
+  let streak = 1
+  let prev = sorted[0].split('-').map(Number)
+  for (let i = 1; i < sorted.length; i++) {
+    const curr = sorted[i].split('-').map(Number)
+    const diff = Math.round(
+      (new Date(prev[0], prev[1], prev[2]).getTime() - new Date(curr[0], curr[1], curr[2]).getTime()) / 86400000
+    )
+    if (diff === 1) { streak++; prev = curr } else break
+  }
+  return streak
+}
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function getUniqueSports(activities: Activity[]): string[] {
+  return Array.from(new Set(activities.map(a => a.sport)))
+}
+
+// ─── Achievements engine ──────────────────────────────────────────────────────
+
+interface Achievement {
+  id:       string
+  emoji:    string
+  title:    string
+  desc:     string
+  unlocked: boolean
+  xp:       number
+}
+
+function computeAchievements(acts: Activity[], streak: number): Achievement[] {
+  const totalKm   = acts.reduce((s, a) => s + a.distanceKm, 0)
+  const totalMins = acts.reduce((s, a) => s + a.durationMinutes, 0)
+  const sports    = getUniqueSports(acts)
+  const verified  = acts.filter(a => a.fitnessData?.source && a.fitnessData.source !== 'Manual').length
+
+  return [
+    {
+      id: 'first',    emoji: '🚀', title: 'First Step',        xp: 50,
+      desc: 'Log your first workout',
+      unlocked: acts.length >= 1,
+    },
+    {
+      id: 'five',     emoji: '🔥', title: 'Getting Warmed Up', xp: 100,
+      desc: 'Log 5 activities',
+      unlocked: acts.length >= 5,
+    },
+    {
+      id: 'ten',      emoji: '💪', title: 'Double Digits',     xp: 200,
+      desc: 'Log 10 activities',
+      unlocked: acts.length >= 10,
+    },
+    {
+      id: 'twenty',   emoji: '⚡', title: 'Grinder',           xp: 300,
+      desc: 'Log 20 activities',
+      unlocked: acts.length >= 20,
+    },
+    {
+      id: 'fifty',    emoji: '🏆', title: 'True Athlete',      xp: 500,
+      desc: 'Log 50 activities',
+      unlocked: acts.length >= 50,
+    },
+    {
+      id: 'streak3',  emoji: '🌤️', title: '3-Day Streak',     xp: 75,
+      desc: 'Work out 3 days in a row',
+      unlocked: streak >= 3,
+    },
+    {
+      id: 'streak7',  emoji: '🔥', title: 'Week Warrior',      xp: 150,
+      desc: 'Log activities 7 days in a row',
+      unlocked: streak >= 7,
+    },
+    {
+      id: 'streak30', emoji: '🦁', title: 'Iron Will',         xp: 600,
+      desc: '30-day streak — extraordinary',
+      unlocked: streak >= 30,
+    },
+    {
+      id: 'dist50',   emoji: '🗺️', title: 'Distance Chaser',  xp: 200,
+      desc: 'Cover 50 km across all activities',
+      unlocked: totalKm >= 50,
+    },
+    {
+      id: 'dist100',  emoji: '🌍', title: 'Century Club',      xp: 400,
+      desc: 'Cover 100 km across all activities',
+      unlocked: totalKm >= 100,
+    },
+    {
+      id: 'time10h',  emoji: '⏱️', title: '10-Hour Club',      xp: 250,
+      desc: 'Accumulate 10 hours of exercise',
+      unlocked: totalMins >= 600,
+    },
+    {
+      id: 'multisport',emoji: '🎯', title: 'Multi-Sport',      xp: 150,
+      desc: 'Try 3 different sports',
+      unlocked: sports.length >= 3,
+    },
+    {
+      id: 'verified', emoji: '✅', title: 'Verified Athlete',  xp: 100,
+      desc: 'Connect a device (Strava, Garmin, etc.)',
+      unlocked: verified >= 1,
+    },
+    {
+      id: 'sweat500', emoji: '💰', title: 'Point Earner',      xp: 100,
+      desc: 'Earn 500+ Sandlotz Score points',
+      unlocked: acts.reduce((s, a) => s + a.score, 0) >= 500,
+    },
+  ]
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const { user, profile, loading, logOut } = useAuth()
   const router = useRouter()
-  const [questTab,  setQuestTab]  = useState<QuestTab>('Daily')
-  const [shareMsg,  setShareMsg]  = useState('')
+
+  const [acts,        setActs]        = useState<Activity[]>([])
+  const [redemptions, setRedemptions] = useState<Redemption[]>([])
+  const [perks,       setPerks]       = useState<Perk[]>([])
+  const [fetching,    setFetching]    = useState(true)
+  const [shareMsg,    setShareMsg]    = useState('')
+  const [aiInsight,   setAiInsight]   = useState<string | null>(null)
+  const [aiLoading,   setAiLoading]   = useState(false)
+  const [showAllAch,  setShowAllAch]  = useState(false)
+
+  useEffect(() => {
+    if (!loading && !user) router.replace('/login')
+  }, [user, loading, router])
+
+  useEffect(() => {
+    if (!user) return
+    Promise.all([
+      getUserActivities(user.uid),
+      getUserRedemptions(user.uid),
+      getPerks(),
+    ]).then(([a, r, p]) => {
+      setActs(a)
+      setRedemptions(r)
+      setPerks(p.filter(pk => pk.available))
+      setFetching(false)
+    })
+  }, [user])
+
+  const fetchAI = useCallback(async () => {
+    if (!profile || aiInsight !== null || acts.length === 0) return
+    setAiLoading(true)
+    try {
+      const tier = getRankTier(profile.totalScore).label
+      const res = await fetch('/api/ai-coach', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activities: acts.slice(0, 10), totalScore: profile.totalScore, tier }),
+      })
+      const d = await res.json()
+      if (d.insight) setAiInsight(d.insight)
+    } catch { /* silent */ } finally { setAiLoading(false) }
+  }, [profile, aiInsight, acts])
+
+  useEffect(() => {
+    if (!fetching) fetchAI()
+  }, [fetching, fetchAI])
 
   function handleShare() {
-    const url = window.location.href
+    const url = 'https://app.sandlotz.com/leaderboard'
     if (navigator.share) {
-      navigator.share({ title: 'My Sandlotz Profile', url })
+      navigator.share({ title: `My Sandlotz Profile — ${formatScore(profile?.totalScore ?? 0)} pts`, url })
     } else {
       navigator.clipboard.writeText(url)
       setShareMsg('Link copied!')
       setTimeout(() => setShareMsg(''), 2000)
     }
   }
-
-  useEffect(() => {
-    if (!loading && !user) router.replace('/login')
-  }, [user, loading, router])
 
   if (loading || !user || !profile) {
     return (
@@ -82,387 +223,424 @@ export default function ProfilePage() {
     )
   }
 
-  const tier = getRankTier(profile.totalScore)
-  const initials = profile.displayName
+  // Derived data
+  const tier          = getRankTier(profile.totalScore)
+  const tierProg      = getTierProgress(profile.totalScore)
+  const balance       = profile.pointsBalance ?? profile.totalScore ?? 0
+  const initials      = profile.displayName
     ? profile.displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?'
+  const totalKm       = acts.reduce((s, a) => s + a.distanceKm, 0)
+  const totalMins     = acts.reduce((s, a) => s + a.durationMinutes, 0)
+  const streak        = computeStreak(acts)
+  const uniqueSports  = getUniqueSports(acts)
+  const achievements  = computeAchievements(acts, streak)
+  const unlockedCount = achievements.filter(a => a.unlocked).length
 
-  const { pct: progress, nextLabel: nextTier, pointsToNext } = getTierProgress(profile.totalScore)
+  // Top sport by count
+  const sportCounts: Record<string, number> = {}
+  acts.forEach(a => { sportCounts[a.sport] = (sportCounts[a.sport] ?? 0) + 1 })
+  const topSportKey = Object.entries(sportCounts).sort((a,b) => b[1]-a[1])[0]?.[0]
+  const topSportOpt = SPORT_OPTIONS.find(s => s.value === topSportKey)
 
-  const sportLabel = SPORT_OPTIONS.find(s => s.value === profile.sport)?.label ?? 'Other'
-  const sportEmoji = SPORT_OPTIONS.find(s => s.value === profile.sport)?.emoji ?? '🏅'
+  // Featured perks: top sponsored + affordable first
+  const featuredPerks = perks
+    .sort((a, b) => {
+      const aScore = (a.sponsored ? 2 : 0) + (balance >= a.cost ? 1 : 0)
+      const bScore = (b.sponsored ? 2 : 0) + (balance >= b.cost ? 1 : 0)
+      return bScore - aScore
+    })
+    .slice(0, 4)
+
+  const displayedAch = showAllAch ? achievements : achievements.slice(0, 6)
 
   return (
     <div className="max-w-4xl mx-auto pb-4">
+
+      {/* Header */}
       <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
-        <AppHeader title="Profile" subtitle={`@${profile.displayName}`}
+        <AppHeader
+          title="Profile"
+          subtitle={`@${profile.displayName}`}
           right={
-            <button onClick={handleShare} className="w-8 h-8 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center">
-              <Share2 className="w-4 h-4 text-white/50" />
-            </button>
-          } />
-      </div>
-      <div className="px-4 pt-4">
-      <div className="flex flex-col lg:flex-row gap-6">
-
-        {/* ── LEFT COLUMN (60%) ────────────────────────────────────────── */}
-        <div className="lg:w-[60%] space-y-4">
-
-          {/* Header / Profile card */}
-          <div className="sz-card p-6 relative">
-            {/* Top-right icons */}
-            <div className="absolute top-4 right-4 flex items-center gap-3">
-              <button onClick={handleShare} title={shareMsg || 'Share profile'} className="text-white/50 hover:text-white transition-colors relative">
-                <Share2 className="w-5 h-5" />
-                {shareMsg && <span className="absolute -bottom-6 -right-2 text-xs text-green-400 whitespace-nowrap">{shareMsg}</span>}
-              </button>
-              <NextLink href="/settings" title="Settings" className="text-white/50 hover:text-white transition-colors"><Settings className="w-5 h-5" /></NextLink>
-              <button onClick={() => logOut()} title="Sign out" className="text-white/50 hover:text-white transition-colors"><LogOut className="w-5 h-5" /></button>
-            </div>
-
-            {/* Avatar + Name */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-                <span className="text-white font-black text-2xl">{initials}</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl font-black text-white">{profile.displayName}</h1>
-                  <span className="bg-yellow-400 text-purple-900 text-xs font-bold px-3 py-1 rounded-full">
-                    ALL-STAR TIER
+            <div className="flex items-center gap-2">
+              <button onClick={handleShare} className="w-8 h-8 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center relative">
+                <Share2 className="w-4 h-4 text-white/50" />
+                {shareMsg && (
+                  <span className="absolute -bottom-6 right-0 text-[10px] text-green-400 whitespace-nowrap font-bold">
+                    {shareMsg}
                   </span>
-                </div>
-                <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
-                  <MapPin className="w-3 h-3" />
-                  <span>{profile.city || 'Unknown City'}</span>
-                </div>
-              </div>
+                )}
+              </button>
             </div>
+          }
+        />
+      </div>
 
-            {/* Stat boxes */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-                <Zap className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-                <p className="text-2xl font-black text-white">{formatScore(profile.totalScore)}</p>
-                <p className="text-white/50 text-xs mt-0.5">SweatScore</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-                <Target className="w-5 h-5 text-white/60 mx-auto mb-1" />
-                <p className="text-2xl font-black text-white">{profile.totalScore.toLocaleString()}</p>
-                <p className="text-white/50 text-xs mt-0.5">PlayerPoints</p>
-              </div>
+      <div className="px-4 pt-4 space-y-4">
+
+        {/* ── HERO CARD ──────────────────────────────────────────────────── */}
+        <div className="sz-card p-5 relative overflow-hidden">
+          {/* Background tier glow */}
+          <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-[80px] opacity-20 ${tier.color.replace('text-', 'bg-')}`} />
+
+          {/* Top-right actions */}
+          <div className="absolute top-4 right-4 flex items-center gap-3 z-10">
+            <Link href="/settings" className="text-white/40 hover:text-white transition-colors">
+              <Settings className="w-4 h-4" />
+            </Link>
+            <button onClick={() => logOut()} className="text-white/40 hover:text-white transition-colors">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Avatar + info */}
+          <div className="flex items-center gap-4 mb-4 relative">
+            <div className={`w-20 h-20 rounded-full border-2 flex items-center justify-center shrink-0 ${tier.badgeClass.includes('yellow') ? 'bg-brand-yellow/20 border-brand-yellow/40' : 'bg-white/10 border-white/20'}`}>
+              <span className={`font-black text-2xl ${tier.color}`}>{initials}</span>
             </div>
-
-            {/* Bio */}
-            <p className="text-white/70 text-sm mb-4">
-              {(profile as any).bio || 'Passionate athlete always looking for the next challenge. Love competing and connecting with fellow sports enthusiasts.'}
-            </p>
-
-            {/* My Sports */}
             <div>
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">My Sports</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">{sportEmoji} {sportLabel}</span>
-                <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">🏀 Basketball</span>
-                <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">🚴 Cycling</span>
+              <h1 className="text-xl font-black text-white">{profile.displayName}</h1>
+              <div className="flex items-center gap-2 flex-wrap mt-1">
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${tier.badgeClass}`}>
+                  {tier.label} Tier
+                </span>
+                {profile.city && (
+                  <span className="flex items-center gap-1 text-white/40 text-xs">
+                    <MapPin className="w-3 h-3" />
+                    {profile.city}
+                  </span>
+                )}
               </div>
+              {uniqueSports.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {uniqueSports.slice(0, 4).map(s => {
+                    const opt = SPORT_OPTIONS.find(o => o.value === s)
+                    return opt ? (
+                      <span key={s} className="text-[10px] bg-white/8 border border-white/10 px-2 py-0.5 rounded-full">
+                        {opt.emoji} {opt.label}
+                      </span>
+                    ) : null
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* PlayerPath Progress */}
-          <div className="sz-card p-6">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-white/70" />
-                <span className="font-bold text-white">PlayerPath Progress</span>
-              </div>
-              <span className="bg-white/10 text-white text-xs px-3 py-1 rounded-full">{tier.label}</span>
+          {/* Score / Balance row */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-brand-yellow/10 border border-brand-yellow/20 rounded-xl p-3 text-center">
+              <Zap className="w-4 h-4 text-brand-yellow mx-auto mb-1" />
+              <p className="text-2xl font-black text-brand-yellow">{formatScore(profile.totalScore)}</p>
+              <p className="text-white/40 text-[10px] mt-0.5">Sandlotz Score™</p>
             </div>
-            <p className="text-white/50 text-sm mb-4">Track your journey to the top tier.</p>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-white/70">Current Level: <span className="text-white font-bold">{tier.label}</span></span>
-              <span className="text-white/70">Next Level: <span className="text-white font-bold">{nextTier}</span></span>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+              <Gift className="w-4 h-4 text-white/50 mx-auto mb-1" />
+              <p className="text-2xl font-black text-white">{balance.toLocaleString()}</p>
+              <p className="text-white/40 text-[10px] mt-0.5">Spendable PP</p>
             </div>
-            <div className="h-2 rounded-full bg-white/10 mb-3">
-              <div className="h-2 rounded-full bg-yellow-400 transition-all" style={{ width: `${progress}%` }} />
-            </div>
-            <p className="text-white/40 text-xs">{pointsToNext > 0 ? `${pointsToNext.toLocaleString()} pts to ${nextTier}` : 'Max tier reached!'} · Keep logging to level up.</p>
           </div>
 
-          {/* Your Quests */}
-          <div className="sz-card p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Target className="w-5 h-5 text-white/70" />
-              <span className="font-bold text-white">Your Quests</span>
+          {/* XP Progress bar */}
+          <div>
+            <div className="flex justify-between text-[10px] text-white/35 mb-1.5">
+              <span className="font-bold">{tier.label}</span>
+              <span>{tierProg.pointsToNext > 0 ? `${tierProg.pointsToNext.toLocaleString()} pts → ${tierProg.nextLabel}` : 'Max Tier!'}</span>
             </div>
-
-            {/* Tab switcher */}
-            <div className="flex gap-1 mb-4 bg-white/5 rounded-xl p-1 w-fit">
-              {(['Daily', 'Weekly', 'Monthly'] as QuestTab[]).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setQuestTab(tab)}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    questTab === tab ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'
-                  }`}
-                >
-                  {tab}
-                </button>
+            <div className="h-2.5 rounded-full bg-white/8 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${tierProg.pct}%` }}
+                transition={{ duration: 1.5, ease: 'easeOut' }}
+                className="h-full rounded-full bg-gradient-to-r from-brand-yellow to-yellow-300"
+              />
+            </div>
+            <div className="flex justify-between text-[9px] text-white/20 mt-1.5">
+              {TIER_THRESHOLDS.slice().reverse().map(t => (
+                <span key={t.label} className={profile.totalScore >= t.min ? t.color : 'text-white/15'}>
+                  {t.label}
+                </span>
               ))}
             </div>
+          </div>
+        </div>
 
-            {/* Quest items */}
-            <div className="space-y-3">
-              {QUESTS[questTab].map((q, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
-                      <p className="font-bold text-white text-sm">{q.title}</p>
-                      <p className="text-white/50 text-xs">{q.desc}</p>
+        {/* ── STATS ROW ─────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { icon: <ActivityIcon className="w-4 h-4" />, v: String(acts.length),       l: 'Activities', color: 'text-brand-yellow' },
+            { icon: <Ruler className="w-4 h-4" />,        v: `${totalKm.toFixed(1)}km`, l: 'Distance',   color: 'text-blue-400'    },
+            { icon: <Clock className="w-4 h-4" />,        v: formatDuration(totalMins), l: 'Active',     color: 'text-green-400'   },
+            { icon: <Flame className="w-4 h-4" />,        v: `${streak}d`,              l: 'Streak',     color: 'text-orange-400'  },
+          ].map(s => (
+            <div key={s.l} className="sz-card p-3 text-center">
+              <span className={s.color}>{s.icon}</span>
+              <p className="font-black text-white text-lg mt-1">{s.v}</p>
+              <p className="text-white/35 text-[10px]">{s.l}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── REWARDS & PERKS ───────────────────────────────────────────── */}
+        <div className="sz-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Gift className="w-4 h-4 text-brand-yellow" />
+              <span className="font-bold text-white">Sponsor Rewards</span>
+            </div>
+            <Link href="/perks" className="text-xs text-brand-yellow font-bold hover:text-yellow-300 transition-colors flex items-center gap-1">
+              Browse All <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {/* Balance callout */}
+          <div className="bg-brand-yellow/8 border border-brand-yellow/20 rounded-xl p-3 mb-4 flex items-center gap-3">
+            <Zap className="w-5 h-5 text-brand-yellow flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-brand-yellow font-black text-lg leading-none">{balance.toLocaleString()} PP</p>
+              <p className="text-white/40 text-xs">Available to redeem</p>
+            </div>
+            <Link href="/perks" className="bg-brand-yellow text-brand-purple-dark text-xs font-black px-3 py-1.5 rounded-xl flex-shrink-0">
+              Redeem
+            </Link>
+          </div>
+
+          {fetching ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-white/30" />
+            </div>
+          ) : featuredPerks.length === 0 ? (
+            <p className="text-white/30 text-xs text-center py-4">No perks available yet — check back soon!</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {featuredPerks.map(perk => {
+                const canAfford = balance >= perk.cost
+                return (
+                  <Link key={perk.id} href="/perks"
+                    className="bg-white/[0.04] border border-white/[0.07] rounded-xl overflow-hidden hover:border-brand-yellow/30 transition-all group">
+                    <div className="bg-gradient-to-br from-white/10 to-transparent h-14 flex items-center justify-center relative">
+                      <span className="text-3xl">{perk.emoji}</span>
+                      {perk.sponsored && (
+                        <span className="absolute top-1.5 left-1.5 bg-brand-yellow text-brand-purple-dark text-[8px] font-black px-1.5 py-0.5 rounded-full">SPONSOR</span>
+                      )}
                     </div>
-                    <span className="text-yellow-400 font-bold text-sm whitespace-nowrap">+{q.pp} PP</span>
+                    <div className="p-2.5">
+                      <p className="text-white text-xs font-bold leading-tight line-clamp-1">{perk.title}</p>
+                      <p className="text-white/30 text-[10px] mb-1.5">{perk.brand}</p>
+                      <div className={`flex items-center gap-1 text-[10px] font-black rounded-full px-2 py-0.5 w-fit ${canAfford ? 'bg-brand-yellow/15 text-brand-yellow' : 'bg-white/5 text-white/30'}`}>
+                        <Zap className="w-2.5 h-2.5" />
+                        {perk.cost.toLocaleString()} pts
+                        {!canAfford && <Lock className="w-2.5 h-2.5 ml-0.5" />}
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          {redemptions.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/[0.06]">
+              <p className="text-xs text-white/40 font-semibold uppercase tracking-wider mb-2">Recent Redemptions</p>
+              <div className="space-y-2">
+                {redemptions.slice(0, 3).map(r => (
+                  <div key={r.id} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
+                    <span className="text-xl">{r.perkEmoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-bold truncate">{r.perkTitle}</p>
+                      <p className="text-white/30 text-[10px]">Code: <span className="text-brand-yellow font-mono">{r.code}</span></p>
+                    </div>
+                    <span className="text-[10px] text-white/25">-{r.cost.toLocaleString()} PP</span>
                   </div>
-                  {q.inProgress && q.progress ? (
-                    <>
-                      <div className="h-1.5 rounded-full bg-white/10 mb-2">
-                        <div
-                          className="h-1.5 rounded-full bg-yellow-400/60"
-                          style={{ width: `${Math.round((q.progress[0] / q.progress[1]) * 100)}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/40 text-xs">{q.progress[0]}/{q.progress[1]}</span>
-                        <button disabled className="text-xs bg-white/10 text-white/40 px-3 py-1 rounded-lg cursor-not-allowed font-semibold">In Progress</button>
-                      </div>
-                    </>
+                ))}
+                {redemptions.length > 3 && (
+                  <Link href="/perks" className="block text-center text-xs text-white/25 hover:text-white/50 transition-colors py-1">
+                    +{redemptions.length - 3} more redemptions
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── ACHIEVEMENTS ─────────────────────────────────────────────── */}
+        <div className="sz-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-brand-yellow" />
+              <span className="font-bold text-white">Achievements</span>
+            </div>
+            <span className="text-xs text-white/40 font-semibold">{unlockedCount}/{achievements.length} unlocked</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {displayedAch.map(ach => (
+              <div key={ach.id}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border transition-all ${
+                  ach.unlocked
+                    ? 'bg-white/[0.04] border-white/[0.08]'
+                    : 'bg-white/[0.02] border-white/[0.04] opacity-50'
+                }`}>
+                <span className={`text-xl ${!ach.unlocked ? 'grayscale opacity-40' : ''}`}>{ach.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-xs font-bold leading-tight">{ach.title}</p>
+                  <p className="text-white/35 text-[10px] leading-tight mt-0.5">{ach.desc}</p>
+                  {ach.unlocked ? (
+                    <span className="text-[9px] text-green-400 font-bold flex items-center gap-0.5 mt-1">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> +{ach.xp} XP
+                    </span>
                   ) : (
-                    <button disabled title="Quest tracking coming soon" className="btn-primary !py-1.5 !px-4 text-xs w-full mt-1 opacity-50 cursor-not-allowed">Start Quest</button>
+                    <span className="text-[9px] text-white/20 flex items-center gap-0.5 mt-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked
+                    </span>
                   )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
-          {/* AI-Powered Digest */}
-          <div className="sz-card p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">✨</span>
-              <span className="font-bold text-white">Your AI-Powered Digest</span>
-            </div>
-            <p className="text-white/40 text-xs mb-4 leading-relaxed">
-              Personalized suggestions to help you play, train, and connect. This is for informational purposes only, not medical advice. Consult a physician before changing your fitness routine.
-            </p>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-              <p className="text-white/40 text-sm">No suggestions available. Complete your profile to get personalized tips!</p>
-            </div>
-          </div>
-
-          {/* Featured Items For You */}
-          <div className="sz-card p-6">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-white/70" />
-                <span className="font-bold text-white">Featured Items For You</span>
-              </div>
-              <NextLink href="/marketplace" className="btn-ghost !py-1.5 !px-3 text-xs">View Marketplace</NextLink>
-            </div>
-            <p className="text-white/40 text-sm mb-4">Promoted and popular items related to your interests.</p>
-
-            <div className="grid grid-cols-2 gap-4">
-              {/* Player card */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative">
-                <div className="flex gap-2 mb-3">
-                  <span className="bg-yellow-400 text-purple-900 text-xs font-bold px-2 py-0.5 rounded-full">Promoted</span>
-                  <span className="bg-white/10 text-white text-xs font-bold px-2 py-0.5 rounded-full">Player</span>
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Users className="w-5 h-5 text-white/50" />
-                </div>
-                <p className="text-white font-bold text-sm text-center">Marcus J.</p>
-                <p className="text-white/40 text-xs text-center mb-2">New York, NY</p>
-                <div className="flex flex-wrap gap-1 justify-center mb-3">
-                  <span className="bg-white/10 text-white text-xs px-2 py-0.5 rounded-full">🏀 Basketball</span>
-                </div>
-                <button disabled title="Player connections coming soon" className="btn-primary w-full !py-1.5 text-xs opacity-50 cursor-not-allowed">Connect</button>
-              </div>
-
-              {/* Gear card */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <div className="flex gap-2 mb-3">
-                  <span className="bg-white/10 text-white text-xs font-bold px-2 py-0.5 rounded-full">Gear</span>
-                </div>
-                <div className="bg-white/10 rounded-xl aspect-video flex items-center justify-center mb-3">
-                  <ShoppingCart className="w-6 h-6 text-white/20" />
-                </div>
-                <p className="text-white font-bold text-sm">Wilson Evolution Basketball</p>
-                <p className="text-white/40 text-xs mb-2">Official size indoor game ball.</p>
-                <p className="text-white/40 text-xs mb-2">New York, NY</p>
-                <p className="text-yellow-400 font-black mb-2">$45</p>
-                <NextLink href="/marketplace" className="btn-primary w-full !py-1.5 text-xs text-center block">View Item</NextLink>
-              </div>
-            </div>
-          </div>
-
-          {/* Featured Perks For You */}
-          <div className="sz-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-white/70" />
-                <span className="font-bold text-white">Featured Perks For You</span>
-              </div>
-              <NextLink href="/perks" className="btn-ghost !py-1.5 !px-3 text-xs">View All Perks</NextLink>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { sponsor: 'Sponsored by Garmin', title: 'Garmin Watch Raffle', desc: 'Enter to win a Garmin Forerunner 265.' },
-                { sponsor: 'Sponsored by Nike', title: '$10 Nike Gift Card', desc: 'A digital gift card for Nike.com.' },
-              ].map((perk, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                  <div className="bg-white/10 aspect-video flex items-center justify-center">
-                    <Gift className="w-6 h-6 text-white/20" />
-                  </div>
-                  <div className="p-3">
-                    <span className="bg-yellow-400 text-purple-900 text-xs font-bold px-2 py-0.5 rounded-full">{perk.sponsor}</span>
-                    <p className="text-white font-bold text-sm mt-2">{perk.title}</p>
-                    <p className="text-white/40 text-xs mt-1">{perk.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── RIGHT COLUMN (40%) ───────────────────────────────────────── */}
-        <div className="lg:w-[40%] space-y-4">
-
-          {/* Health & Performance */}
-          <div className="sz-card p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Activity className="w-5 h-5 text-white/70" />
-              <span className="font-bold text-white">Health & Performance</span>
-            </div>
-            <p className="text-white/40 text-sm mb-4">Data from your connected devices.</p>
-
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-                <HeartPulse className="w-5 h-5 text-red-400 mx-auto mb-1" />
-                <p className="text-3xl font-black text-white">58</p>
-                <p className="text-white/40 text-xs mt-1 leading-tight">Resting Heart Rate (bpm)</p>
-                <span className="inline-block mt-2 bg-green-500/20 text-green-400 text-xs font-semibold px-2 py-0.5 rounded-full">Above Average</span>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-                <Wind className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-                <p className="text-3xl font-black text-white">45</p>
-                <p className="text-white/40 text-xs mt-1 leading-tight">VO2 Max (ml/kg/min)</p>
-                <span className="inline-block mt-2 bg-green-500/20 text-green-400 text-xs font-semibold px-2 py-0.5 rounded-full">Above Average</span>
-              </div>
-            </div>
-
-            {/* Weekly Activity bar chart */}
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-3">Weekly Activity</p>
-            <div className="flex items-end gap-1.5 h-20 mb-1">
-              {BAR_HEIGHTS.map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t-sm bg-yellow-400"
-                    style={{ height: `${h}%` }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-1.5 mb-5">
-              {BAR_DAYS.map((d, i) => (
-                <div key={i} className="flex-1 text-center text-white/30 text-xs">{d}</div>
-              ))}
-            </div>
-
-            <button disabled title="Device sync coming soon" className="btn-ghost w-full flex items-center justify-center gap-2 text-sm opacity-50 cursor-not-allowed">
-              <ExternalLink className="w-4 h-4" />
-              Link Device
+          {achievements.length > 6 && (
+            <button onClick={() => setShowAllAch(v => !v)}
+              className="w-full mt-3 py-2.5 text-xs text-white/30 hover:text-white/60 transition-colors flex items-center justify-center gap-1.5">
+              {showAllAch ? 'Show Less' : `Show All ${achievements.length} Achievements`}
+              <ChevronRight className={`w-3 h-3 transition-transform ${showAllAch ? 'rotate-90' : ''}`} />
             </button>
-          </div>
-
-          {/* My Rankings & Records */}
-          <div className="sz-card p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              <span className="font-bold text-white">My Rankings & Records</span>
-            </div>
-            <p className="text-white/40 text-sm mb-4">Your personal bests and leaderboard standings.</p>
-
-            <div className="space-y-3 mb-4">
-              <div className="flex items-start gap-3">
-                <Medal className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-white text-sm">Top Sport: Basketball</p>
-                  <p className="text-white/60 text-xs">Rank #12 in {profile.city || 'New York, NY'}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Flame className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-white text-sm">Most Calories Burned</p>
-                  <p className="text-white/60 text-xs">700 kcal (Cycling)</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-white text-sm">Longest Activity Streak</p>
-                  <p className="text-white/60 text-xs">7 days</p>
-                </div>
-              </div>
-            </div>
-
-            <NextLink href="/leaderboard" className="btn-ghost w-full text-sm text-center block">View Leaderboards</NextLink>
-          </div>
-
-          {/* My Badges & Achievements */}
-          <div className="sz-card p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Star className="w-5 h-5 text-yellow-400" />
-              <span className="font-bold text-white">My Badges & Achievements</span>
-            </div>
-            <p className="text-white/40 text-sm mb-4 leading-relaxed">
-              Digital awards earned from your activities and milestones. Verify them with our AI to add a stamp of authenticity.
-            </p>
-
-            <div className="space-y-3">
-              {/* Badge 1 */}
-              <div className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
-                <Flame className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-sm">7-Day Streak</p>
-                  <p className="text-white/50 text-xs">Logged an activity every day for a week.</p>
-                </div>
-                <span className="shrink-0 bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap">✓ Verified</span>
-              </div>
-
-              {/* Badge 2 */}
-              <div className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
-                <Medal className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-sm">Marathon Finisher</p>
-                  <p className="text-white/50 text-xs">Completed a full marathon.</p>
-                </div>
-                <button disabled title="Badge verification coming soon" className="shrink-0 btn-ghost !py-0.5 !px-2 text-xs opacity-50 cursor-not-allowed">Verify</button>
-              </div>
-
-              {/* Badge 3 */}
-              <div className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
-                <Trophy className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-sm">Top Performer</p>
-                  <p className="text-white/50 text-xs">Ranked #1 on a local leaderboard.</p>
-                </div>
-                <span className="shrink-0 bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap">✓ Verified</span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+
+        {/* ── RECENT ACTIVITY ──────────────────────────────────────────── */}
+        <div className="sz-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ActivityIcon className="w-4 h-4 text-white/50" />
+              <span className="font-bold text-white">Recent Activity</span>
+            </div>
+            {topSportOpt && (
+              <span className="text-xs text-white/40">
+                Top sport: <span className="text-white font-bold">{topSportOpt.emoji} {topSportOpt.label}</span>
+              </span>
+            )}
+          </div>
+
+          {fetching ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-white/30" />
+            </div>
+          ) : acts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-white/30 text-sm mb-3">No activities logged yet</p>
+              <Link href="/log-activity" className="btn-primary inline-block text-sm">Log First Workout</Link>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {acts.slice(0, 5).map((a, i) => {
+                const sp = SPORT_OPTIONS.find(s => s.value === a.sport)
+                return (
+                  <motion.div key={a.id ?? i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                    className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/[0.05] rounded-xl">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl flex-shrink-0">
+                      {sp?.emoji ?? '🏅'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm capitalize text-white">{a.sport}</p>
+                      <p className="text-white/35 text-[11px]">
+                        {formatDuration(a.durationMinutes)}
+                        {a.distanceKm > 0 ? ` · ${a.distanceKm}km` : ''}
+                        {' · '}{INTENSITY_LABELS[a.intensity]}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-brand-yellow font-black text-sm">+{a.score}</p>
+                      <p className="text-white/20 text-[10px]">{timeAgo(a.createdAt as unknown as { seconds: number })}</p>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── AI DIGEST ────────────────────────────────────────────────── */}
+        <div className="sz-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="w-4 h-4 text-brand-yellow" />
+            <span className="font-bold text-white">AI Performance Digest</span>
+          </div>
+          <p className="text-white/30 text-[10px] mb-3">Personalized training insights from your activity data. Not medical advice.</p>
+
+          {aiLoading ? (
+            <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-4">
+              <Loader2 className="w-4 h-4 animate-spin text-brand-yellow/60 flex-shrink-0" />
+              <p className="text-white/40 text-xs">Analyzing your training patterns…</p>
+            </div>
+          ) : aiInsight ? (
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4">
+              <p className="text-white/70 text-sm leading-relaxed">{aiInsight}</p>
+            </div>
+          ) : acts.length === 0 ? (
+            <div className="bg-white/[0.02] rounded-xl p-4 text-center">
+              <p className="text-white/30 text-sm">Log your first workout to receive personalized AI insights.</p>
+              <Link href="/log-activity" className="mt-3 inline-block text-brand-yellow text-xs font-bold hover:underline">
+                Log Activity →
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white/[0.02] rounded-xl p-4 text-center">
+              <p className="text-white/30 text-sm">Insights loading…</p>
+            </div>
+          )}
+        </div>
+
+        {/* ── PLAYER RANKING ───────────────────────────────────────────── */}
+        <div className="sz-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-4 h-4 text-brand-yellow" />
+            <span className="font-bold text-white">My Ranking</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {TIER_THRESHOLDS.slice().reverse().map(t => {
+              const isCurrentTier = tier.label === t.label
+              return (
+                <div key={t.label} className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all ${
+                  isCurrentTier ? `border-current ${t.badgeClass}` : 'border-white/[0.05] bg-white/[0.02] opacity-40'
+                }`}>
+                  <TrendingUp className={`w-4 h-4 ${isCurrentTier ? t.color : 'text-white/20'}`} />
+                  <div>
+                    <p className={`text-sm font-black ${isCurrentTier ? t.color : 'text-white/30'}`}>{t.label}</p>
+                    <p className="text-white/25 text-[10px]">{t.min.toLocaleString()}+ pts</p>
+                  </div>
+                  {isCurrentTier && <CheckCircle2 className={`w-3.5 h-3.5 ml-auto ${t.color}`} />}
+                </div>
+              )
+            })}
+          </div>
+          <Link href="/leaderboard" className="btn-ghost w-full text-sm text-center block">
+            View City Leaderboard
+          </Link>
+        </div>
+
+        {/* ── QUICK LINKS ───────────────────────────────────────────────── */}
+        <div className="sz-card divide-y divide-white/[0.05]">
+          {[
+            { href: '/log-activity', icon: <Zap className="w-4 h-4" />,     label: 'Log a Workout',     sub: 'Earn PlayerPoints now'             },
+            { href: '/challenges',   icon: <Target className="w-4 h-4" />,  label: 'Challenges',        sub: 'Compete for bonus rewards'         },
+            { href: '/marketplace',  icon: <ShoppingBag className="w-4 h-4" />, label: 'Gear Marketplace',  sub: 'Buy & sell sports gear'           },
+            { href: '/perks',        icon: <Gift className="w-4 h-4" />,    label: 'Perks Store',       sub: `${balance.toLocaleString()} PP to spend` },
+          ].map(item => (
+            <Link key={item.href} href={item.href}
+              className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.03] transition-colors">
+              <span className="text-brand-yellow">{item.icon}</span>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">{item.label}</p>
+                <p className="text-xs text-white/35">{item.sub}</p>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+            </Link>
+          ))}
+        </div>
+
       </div>
     </div>
   )
 }
+

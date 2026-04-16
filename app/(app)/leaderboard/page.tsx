@@ -61,12 +61,17 @@ function Avatar({ entry }: { entry: LeaderboardEntry }) {
 }
 
 export default function LeaderboardPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [entries,     setEntries]     = useState<LeaderboardEntry[]>([])
   const [loading,     setLoading]     = useState(true)
-  const [city,        setCity]        = useState('New York')
+  const [city,        setCity]        = useState('Columbus')
   const [sportFilter, setSportFilter] = useState('all')
   const [openFaq,     setOpenFaq]     = useState<number | null>(null)
+
+  // Default to user's city
+  useEffect(() => {
+    if (profile?.city) setCity(profile.city)
+  }, [profile?.city])
 
   useEffect(() => {
     setLoading(true)
@@ -131,12 +136,29 @@ export default function LeaderboardPage() {
 
       {/* My rank banner */}
       {user && myRank > 0 && (
-        <div className="sz-card p-4 mb-4 flex items-center justify-between border-yellow-400/20 bg-yellow-400/5">
-          <div className="flex items-center gap-3">
-            <Medal className="w-5 h-5 text-yellow-400" />
-            <span className="font-semibold text-sm text-white">Your Rank in {city}</span>
+        <div className="sz-card p-4 mb-4 flex items-center gap-4 border-yellow-400/25 bg-yellow-400/5">
+          <Medal className="w-6 h-6 text-yellow-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs text-white/40 font-medium">Your rank in {city}</p>
+            <p className="text-white font-bold text-sm">
+              {myRank <= 3 ? '🏆 ' : ''}You&apos;re #{myRank} out of {entries.length} athletes
+            </p>
           </div>
-          <span className="font-black text-yellow-400 text-lg">#{myRank}</span>
+          <div className="text-right flex-shrink-0">
+            <p className="text-3xl font-black text-yellow-400">#{myRank}</p>
+          </div>
+        </div>
+      )}
+      {user && myRank === 0 && !loading && entries.length > 0 && (
+        <div className="sz-card p-4 mb-4 flex items-center gap-3 border-white/[0.06] bg-white/[0.02]">
+          <Zap className="w-5 h-5 text-brand-yellow flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-white font-bold">You&apos;re not ranked in {city} yet</p>
+            <p className="text-xs text-white/40">Log an activity to appear on this leaderboard</p>
+          </div>
+          <Link href="/log-activity" className="text-xs bg-brand-yellow text-brand-purple-dark font-bold px-3 py-1.5 rounded-xl flex-shrink-0">
+            Log Now
+          </Link>
         </div>
       )}
 
@@ -160,38 +182,50 @@ export default function LeaderboardPage() {
             const tier = getRankTier(entry.totalScore)
             const isMe = entry.uid === user?.uid
             const rank = i + 1
+            const sportOpt = SPORT_OPTIONS.find(s => s.value === entry.sport)
 
             return (
               <div
                 key={entry.uid}
-                className={`sz-card p-4 flex items-center gap-4 transition-all ${
-                  isMe ? 'border-yellow-400/40 bg-yellow-400/5' : 'hover:bg-white/5'
+                className={`sz-card p-4 flex items-center gap-3 transition-all ${
+                  isMe
+                    ? 'border-yellow-400/40 bg-yellow-400/5 ring-1 ring-yellow-400/20'
+                    : rank <= 3
+                    ? 'border-white/[0.1] bg-white/[0.04]'
+                    : 'hover:bg-white/[0.03]'
                 }`}
               >
+                {/* Rank */}
                 <div className="w-10 flex justify-center shrink-0">
                   <RankBadge rank={rank} />
                 </div>
 
+                {/* Avatar */}
                 <Avatar entry={entry} />
 
+                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className={`font-bold truncate ${isMe ? 'text-yellow-400' : 'text-white'}`}>
+                    <p className={`font-bold text-sm truncate ${isMe ? 'text-yellow-400' : 'text-white'}`}>
                       {entry.displayName}
-                      {isMe && <span className="text-xs ml-1 opacity-70">(you)</span>}
+                      {isMe && <span className="text-[10px] ml-1 opacity-60 font-normal">(you)</span>}
                     </p>
-                    <span className={`text-xs font-semibold ${tier.color} shrink-0`}>{tier.label}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${tier.badgeClass}`}>
+                      {tier.label}
+                    </span>
                   </div>
-                  <p className="text-white/40 text-xs">{city}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs">{sportOpt?.emoji ?? '🏅'}</span>
+                    <span className="text-white/35 text-xs">{sportOpt?.label ?? entry.sport}</span>
+                  </div>
                 </div>
 
-                <div className="shrink-0 text-xl">
-                  {SPORT_OPTIONS.find(s => s.value === entry.sport)?.emoji ?? '🏅'}
-                </div>
-
+                {/* Score */}
                 <div className="shrink-0 text-right">
-                  <p className="font-black text-yellow-400">{formatScore(entry.totalScore)}</p>
-                  <p className="text-white/30 text-xs">pts</p>
+                  <p className={`font-black text-lg ${isMe ? 'text-yellow-400' : 'text-white'}`}>
+                    {formatScore(entry.totalScore)}
+                  </p>
+                  <p className="text-white/25 text-[10px]">pts</p>
                 </div>
               </div>
             )

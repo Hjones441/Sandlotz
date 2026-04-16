@@ -9,7 +9,7 @@ import Link from 'next/link'
 import AppHeader from '@/components/layout/AppHeader'
 import {
   Gift, Star, Zap, Trophy, Clock, Lock, AlertCircle, ExternalLink,
-  CheckCircle2, Copy, Check, X, Loader2,
+  CheckCircle2, Copy, Check, X, Loader2, TrendingUp, Flame, ChevronRight,
 } from 'lucide-react'
 
 const PERK_CATEGORIES = ['All', 'Gear', 'Events', 'Services', 'Digital', 'Premium']
@@ -205,20 +205,129 @@ export default function PerksPage() {
         </div>
         <div className="px-4 pt-4 pb-24">
 
-          {/* Balance */}
-          <div className="sz-card p-5 mb-5 flex items-center justify-between">
-            <div>
-              <p className="text-white/50 text-xs mb-0.5">Your spendable balance</p>
-              <p className="text-3xl font-black text-brand-yellow">{balance.toLocaleString()}</p>
-              <p className="text-white/40 text-xs">PlayerPoints</p>
-            </div>
-            <div className="text-right">
-              <Zap className="w-8 h-8 text-brand-yellow/40 ml-auto mb-1" />
-              <Link href="/log-activity" className="text-xs text-brand-yellow hover:text-yellow-300 font-bold transition-colors">
-                Earn more →
-              </Link>
+          {/* ── HERO BALANCE BANNER ─────────────────────────────────────── */}
+          <div className="relative overflow-hidden rounded-2xl mb-5 bg-gradient-to-br from-brand-yellow/20 via-brand-purple/40 to-[#0e0825] border border-brand-yellow/25 p-5">
+            <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-brand-yellow/10 blur-[60px]" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-white/50 text-xs mb-0.5 font-medium uppercase tracking-wider">Your PlayerPoints</p>
+                  <p className="text-4xl font-black text-brand-yellow leading-none">{balance.toLocaleString()}</p>
+                  <p className="text-white/40 text-xs mt-1">Available to redeem</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-brand-yellow/15 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-brand-yellow" />
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Link href="/log-activity"
+                  className="flex items-center gap-1.5 bg-brand-yellow text-brand-purple-dark text-xs font-black px-4 py-2 rounded-xl">
+                  <Zap className="w-3.5 h-3.5" /> Earn More Points
+                </Link>
+                <Link href="/challenges"
+                  className="flex items-center gap-1.5 bg-white/10 border border-white/15 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                  <Trophy className="w-3.5 h-3.5" /> View Challenges
+                </Link>
+              </div>
             </div>
           </div>
+
+          {/* ── HOW TO EARN ─────────────────────────────────────────────── */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 mb-5">
+            <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">How to Earn More</p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { emoji: '🏋️', label: 'Log Workout',     pts: '+50-300 PP', href: '/log-activity' },
+                { emoji: '🏆', label: 'Join Challenge',   pts: '+200-750 PP', href: '/challenges'  },
+                { emoji: '⚡', label: 'Connect Device',   pts: '+5% bonus',   href: '/log-activity' },
+              ].map(s => (
+                <Link key={s.label} href={s.href}
+                  className="bg-white/[0.03] rounded-xl p-3 hover:bg-white/[0.07] transition-colors">
+                  <div className="text-2xl mb-1">{s.emoji}</div>
+                  <p className="text-white/60 text-[10px] font-bold">{s.label}</p>
+                  <p className="text-brand-yellow text-[10px] font-black mt-0.5">{s.pts}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* ── SPONSOR SPOTLIGHT ───────────────────────────────────────── */}
+          {!loading && perks.filter(p => p.sponsored && p.available).length > 0 && (
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Flame className="w-4 h-4 text-orange-400" />
+                <span className="text-sm font-black text-white">Sponsor Spotlight</span>
+                <span className="text-[10px] bg-orange-500/15 text-orange-400 border border-orange-500/20 rounded-full px-2 py-0.5 font-bold ml-1">
+                  Featured Brands
+                </span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+                {perks.filter(p => p.sponsored && p.available).map(perk => {
+                  const canAfford = balance >= perk.cost
+                  return (
+                    <motion.div key={perk.id}
+                      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                      className="flex-shrink-0 w-52 bg-white/[0.05] border border-white/[0.08] rounded-2xl overflow-hidden cursor-pointer hover:border-brand-yellow/30 transition-all"
+                      onClick={() => { setRedeemError(''); setSelectedPerk(perk) }}>
+                      <div className="bg-gradient-to-br from-brand-yellow/20 to-brand-purple/30 h-24 flex items-center justify-center relative">
+                        <span className="text-5xl">{perk.emoji}</span>
+                        {perk.flash && (
+                          <span className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse">FLASH</span>
+                        )}
+                        <span className="absolute bottom-2 left-2 bg-brand-yellow text-brand-purple-dark text-[9px] font-black px-2 py-0.5 rounded-full">
+                          SPONSORED
+                        </span>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-[10px] text-white/35 mb-0.5">{perk.brand}</p>
+                        <p className="text-white font-bold text-xs leading-tight line-clamp-2 mb-2">{perk.title}</p>
+                        <div className={`flex items-center justify-between`}>
+                          <div className={`flex items-center gap-1 text-[11px] font-black ${canAfford ? 'text-brand-yellow' : 'text-white/30'}`}>
+                            <Star className="w-3 h-3" />
+                            {perk.cost.toLocaleString()} pts
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${canAfford ? 'bg-brand-yellow/15 text-brand-yellow' : 'bg-white/5 text-white/25'}`}>
+                            {canAfford ? 'Redeem' : 'Locked'}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Flash deals */}
+          {!loading && perks.filter(p => p.flash && p.available).length > 0 && (
+            <div className="mb-5 bg-red-500/8 border border-red-500/20 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4 text-red-400 animate-pulse" />
+                <span className="text-sm font-black text-white">⚡ Flash Deals</span>
+                <span className="text-[10px] bg-red-500/15 text-red-400 rounded-full px-2 py-0.5 font-bold ml-1">LIMITED TIME</span>
+              </div>
+              <div className="space-y-2">
+                {perks.filter(p => p.flash && p.available).map(perk => {
+                  const canAfford = balance >= perk.cost
+                  return (
+                    <div key={perk.id}
+                      onClick={() => { setRedeemError(''); setSelectedPerk(perk) }}
+                      className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.07] rounded-xl p-3 cursor-pointer hover:border-red-400/30 transition-all">
+                      <span className="text-2xl">{perk.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-bold text-sm truncate">{perk.title}</p>
+                        <p className="text-white/35 text-xs">{perk.brand}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={`font-black text-sm ${canAfford ? 'text-brand-yellow' : 'text-white/30'}`}>{perk.cost.toLocaleString()} pts</p>
+                        <p className={`text-[10px] ${canAfford ? 'text-green-400' : 'text-white/20'}`}>{canAfford ? '✓ Can redeem' : 'Need more PP'}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Tab switcher */}
           <div className="flex bg-white/5 rounded-xl p-1 mb-5">
