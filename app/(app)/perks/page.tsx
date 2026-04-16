@@ -35,12 +35,10 @@ const PERKS = [
   { id:'8', title:'1-on-1 Coaching Session',    cost:600,  brand:'CoachHub',    category:'Services', emoji:'🏀', desc:'60-min personalized coaching with a certified trainer. Book within 7 days.',            sponsored:false, available:true },
 ]
 
-const DISCLAIMER_ITEMS = [
-  'PlayerPoints have no cash value and are not transferable.',
-  'Redemptions are final. Points cannot be refunded once a perk is claimed.',
-  'Sandlotz reserves the right to modify or remove perks at any time.',
-  'Points earned through fraudulent activity will be voided and accounts suspended.',
-  'Perks are fulfilled by third-party sponsors. Sandlotz is not responsible for sponsor fulfillment delays.',
+const DISCLAIMER_PARAGRAPHS = [
+  'PlayerPoints are non-transferable, promotional loyalty points issued by Sandlotz for participation and engagement within the platform. PlayerPoints hold no cash or monetary value and cannot be redeemed for cash, credit, or gift cards. Sandlotz reserves the right to modify, revoke, devalue, or expire points at any time, with or without notice, and at its sole discretion.',
+  'Perks, discounts, or items available in the Perks Store are subject to availability and may change at any time. Sandlotz makes no warranties regarding third-party offers or items redeemed via the Perks Store.',
+  'Users are prohibited from attempting to sell, trade, or exchange PlayerPoints for any consideration outside of Sandlotz. Any such attempt is a violation of our Terms of Service and may result in account suspension or termination. All redeemed perks are tied to your Sandlotz account and are strictly non-transferable.',
 ]
 
 const TIER_LABELS = ['Rookie', 'Athlete', 'Pro', 'Elite', 'Legend']
@@ -358,13 +356,11 @@ export default function PerksPage() {
             <AlertCircle className="w-4 h-4 text-white/40" />
             <span className="text-white/50 text-sm font-semibold">PlayerPoints Terms & Conditions</span>
           </div>
-          <ul className="space-y-2 mb-4">
-            {DISCLAIMER_ITEMS.map((item, i) => (
-              <li key={i} className="flex gap-2 text-white/40 text-xs leading-relaxed">
-                <span className="shrink-0 text-white/20">•</span>{item}
-              </li>
+          <div className="space-y-3 mb-4">
+            {DISCLAIMER_PARAGRAPHS.map((para, i) => (
+              <p key={i} className="text-white/50 text-xs leading-relaxed">{para}</p>
             ))}
-          </ul>
+          </div>
           <p className="text-white/30 text-xs border-t border-white/10 pt-4">
             For full terms, visit{' '}
             <a href="https://sandlotz.com/terms" target="_blank" rel="noopener noreferrer" className="text-yellow-400/60 hover:text-yellow-400 underline">sandlotz.com/terms</a>
