@@ -12,6 +12,12 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthed() && request.auth.token.admin == true;
     }
+    function isFounder() {
+      return isAuthed() && (
+        request.auth.token.email == 'Hjones441@gmail.com' ||
+        request.auth.token.admin == true
+      );
+    }
 
     // ── Public read-only surfaces ─────────────────────────────────────────────
 
@@ -21,16 +27,16 @@ service cloud.firestore {
       allow write: if isOwner(uid);
     }
 
-    // Perks catalogue — public read, admin write only
+    // Perks catalogue — public read, founder/admin write
     match /perks/{perkId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read:  if true;
+      allow write: if isFounder();
     }
 
-    // Brand challenges — public read, admin write only
+    // Brand challenges — public read, founder/admin write
     match /challenges/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read:  if true;
+      allow write: if isFounder();
     }
 
     // ── User-owned data ───────────────────────────────────────────────────────
@@ -57,15 +63,36 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Redemptions — users can create and read their own redemptions (no delete)
+    // Redemptions — users can create and read their own; transaction enforces balance
     match /redemptions/{id} {
       allow create: if isAuthed() && request.resource.data.uid == request.auth.uid;
       allow read:   if isAuthed() && resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Challenge participants — authenticated users can create/read their own entries
+    match /challengeParticipants/{id} {
+      allow create: if isAuthed() && request.resource.data.uid == request.auth.uid;
+      allow read:   if isAuthed();
+      allow update: if isAuthed() && resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Marketplace listings — authenticated write, public read (non-sold)
+    match /marketplace/{id} {
+      allow read: if true;
+      allow create: if isAuthed()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.sold == false;
+      allow update: if isAuthed()
+        && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAuthed()
+        && (resource.data.uid == request.auth.uid || isAdmin());
     }
 
     // Partnership inquiries — anyone can submit; only admins can read
     match /partnershipInquiries/{id} {
-      allow create: if true; // public form, no auth required
+      allow create: if true;
       allow read, update, delete: if isAdmin();
     }
 

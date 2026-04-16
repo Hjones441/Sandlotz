@@ -3,14 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Home, Trophy, Plus, ShoppingBag, User } from 'lucide-react'
+import { Home, Trophy, Plus, ShoppingBag, User, Swords } from 'lucide-react'
 
 const TABS = [
   { href: '/dashboard',   label: 'Home',   icon: Home       },
   { href: '/leaderboard', label: 'Ranks',  icon: Trophy     },
   null, // center FAB placeholder
+  { href: '/challenges',  label: 'Compete', icon: Swords    },
   { href: '/marketplace', label: 'Market', icon: ShoppingBag },
-  { href: '/profile',     label: 'Me',     icon: User       },
 ]
 
 export default function AppNav() {

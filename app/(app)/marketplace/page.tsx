@@ -1,256 +1,266 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '@/context/AuthContext'
+import { getMarketplaceListings } from '@/lib/firestore'
+import type { MarketplaceListing } from '@/lib/firestore'
 import AppHeader from '@/components/layout/AppHeader'
+import { SPORT_OPTIONS } from '@/lib/sandlotzScore'
 import {
-  Search,
-  MapPin,
-  PlusCircle,
-  Tag,
-  ShoppingCart,
-  Users,
-  TrendingUp,
-  CalendarDays,
-  Star,
-  Filter,
-  CheckCircle,
+  Search, PlusCircle, Tag, Users, ShoppingBag,
+  X, Mail, Loader2, MapPin,
 } from 'lucide-react'
 
-const TABS = ['All', 'Gear', 'Events', 'Players', 'Services']
+const CATEGORIES = ['All', 'Equipment', 'Apparel', 'Footwear', 'Accessories', 'Other']
 
-const CHALLENGES = [
-  { title: "Nike's NYC Borough Battle",       timeLeft: '3 days left',  participants: '1,204', progress: 85 },
-  { title: "Garmin's Global Running Day",     timeLeft: '1 day left',   participants: '8,753', progress: 92 },
-  { title: "Wilson's Weekend Warrior Tennis", timeLeft: '2 days left',  participants: '450',   progress: 45 },
-]
-
-const LISTINGS = [
-  { id: 1, category: 'Gear',    title: 'Wilson Evolution Basketball',   desc: 'Slightly used, great condition. The best indoor basketball money can buy.', location: 'Queens, NY',    price: '$45',    icon: 'Tag',    action: 'View Item' },
-  { id: 2, category: 'Players', title: 'Alex Johnson',                  desc: 'Passionate about basketball and tennis. Always looking for new players.', location: 'Brooklyn, NY', price: null,     icon: 'Users',  action: 'Connect',   promoted: true },
-  { id: 3, category: 'Gear',    title: 'Nike Air Zoom Pegasus 40',      desc: 'Size 10. Worn twice. Great for tempo runs.',                             location: 'Manhattan, NY', price: '$85',    icon: 'Tag',    action: 'View Item' },
-  { id: 4, category: 'Events',  title: 'Saturday Morning Run Club',     desc: '5K easy run around Central Park. All paces welcome.',                   location: 'Central Park, NY', price: 'Free', icon: 'Calendar', action: 'Join Event' },
-  { id: 5, category: 'Services',title: 'Basketball Coaching Sessions',  desc: '1-on-1 coaching for players aged 12-25. Former D3 player.',             location: 'Bronx, NY',     price: '$60/hr', icon: 'Star',   action: 'Book Now' },
-  { id: 6, category: 'Gear',    title: 'Peloton Cycling Shoes',         desc: 'Size 9W, clip-in, barely used.',                                        location: 'Brooklyn, NY',  price: '$40',    icon: 'Tag',    action: 'View Item' },
-]
-
-function ListingIcon({ icon }: { icon: string }) {
-  if (icon === 'Users')    return <Users    className="text-white/20 w-12 h-12" />
-  if (icon === 'Calendar') return <CalendarDays className="text-white/20 w-12 h-12" />
-  if (icon === 'Star')     return <Star     className="text-white/20 w-12 h-12" />
-  return <Tag className="text-white/20 w-12 h-12" />
+const CONDITION_COLORS: Record<string, string> = {
+  'New':       'text-green-400  bg-green-400/10  border-green-400/20',
+  'Like New':  'text-blue-400   bg-blue-400/10   border-blue-400/20',
+  'Good':      'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+  'Fair':      'text-orange-400 bg-orange-400/10 border-orange-400/20',
 }
 
+// ─── Listing Detail Modal ─────────────────────────────────────────────────────
+
+function ListingModal({ listing, onClose }: { listing: MarketplaceListing; onClose: () => void }) {
+  const sportEntry = SPORT_OPTIONS.find(s => s.value === listing.sport)
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="relative w-full max-w-md bg-[#120a2e] rounded-t-3xl sm:rounded-3xl border border-white/10 overflow-hidden">
+
+        <div className="flex items-center justify-between p-5 border-b border-white/10">
+          <h3 className="text-white font-black">{listing.title}</h3>
+          <button onClick={onClose} className="text-white/30 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Price */}
+          <div className="text-center">
+            <p className="text-4xl font-black text-brand-yellow">
+              {listing.price === 0 ? 'Free' : `$${listing.price}`}
+            </p>
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2">
+            {listing.sport !== 'other' && sportEntry && (
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60">
+                {sportEntry.emoji} {sportEntry.label}
+              </span>
+            )}
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60">
+              {listing.category}
+            </span>
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${CONDITION_COLORS[listing.condition] ?? 'text-white/60 bg-white/5 border-white/10'}`}>
+              {listing.condition}
+            </span>
+          </div>
+
+          {/* Description */}
+          <p className="text-white/70 text-sm leading-relaxed">{listing.description}</p>
+
+          {/* Seller info */}
+          <div className="bg-white/5 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black">
+              {listing.displayName?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">{listing.displayName}</p>
+              <p className="text-white/40 text-xs">Seller</p>
+            </div>
+          </div>
+
+          {/* Contact */}
+          <a href={`mailto:${listing.contactEmail}?subject=Re: ${encodeURIComponent(listing.title)} on Sandlotz`}
+            className="btn-primary w-full flex items-center justify-center gap-2">
+            <Mail className="w-4 h-4" /> Contact Seller
+          </a>
+
+          <p className="text-white/20 text-xs text-center">
+            Listed {listing.createdAt?.toDate?.().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) ?? ''}
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function MarketplacePage() {
-  const [activeTab,    setActiveTab]    = useState('All')
-  const [searchQuery,  setSearchQuery]  = useState('')
-  const [toast,        setToast]        = useState('')
-  const [joinedIds,    setJoinedIds]    = useState<Set<string>>(new Set())
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { user } = useAuth()
 
-  function showToast(msg: string) {
-    setToast(msg)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(''), 3000)
-  }
+  const [listings,       setListings]       = useState<MarketplaceListing[]>([])
+  const [loading,        setLoading]        = useState(true)
+  const [sportFilter,    setSportFilter]    = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [search,         setSearch]         = useState('')
+  const [selected,       setSelected]       = useState<MarketplaceListing | null>(null)
 
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+  const fetchListings = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await getMarketplaceListings()
+      setListings(data)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const filtered = LISTINGS.filter(l => {
-    const matchesTab = activeTab === 'All' || l.category === activeTab
-    const q = searchQuery.toLowerCase()
-    const matchesSearch = !q || l.title.toLowerCase().includes(q) || l.desc.toLowerCase().includes(q) || l.location.toLowerCase().includes(q)
-    return matchesTab && matchesSearch
+  useEffect(() => { fetchListings() }, [fetchListings])
+
+  const filtered = listings.filter(l => {
+    const matchesSport    = sportFilter    === 'all' || l.sport === sportFilter
+    const matchesCategory = categoryFilter === 'All' || l.category === categoryFilter
+    const q = search.toLowerCase()
+    const matchesSearch   = !q || l.title.toLowerCase().includes(q) || l.description.toLowerCase().includes(q)
+    return matchesSport && matchesCategory && matchesSearch
   })
 
+  const sportOptions = [{ value: 'all', label: 'All Sports', emoji: '🏅' }, ...SPORT_OPTIONS]
+
   return (
-    <main>
-      <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
-        <AppHeader title="Marketplace" subtitle="Spend PlayerPoints on gear & perks" />
-      </div>
-
-      {/* ── Hero ── */}
-      <section className="text-center pt-6 pb-8 px-6">
-        <h1 className="text-4xl font-black text-yellow-400 mb-4">Find Your Fit</h1>
-
-        <div className="flex justify-center mb-6">
-          <Link href="/log-activity" className="btn-primary flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm">
-            <PlusCircle className="w-4 h-4" />
-            + Post Item
-          </Link>
+    <>
+      <div className="max-w-6xl mx-auto pb-4">
+        <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
+          <AppHeader title="Marketplace" subtitle="Buy · sell · connect with athletes"
+            right={
+              <Link href="/marketplace/new" className="flex items-center gap-1.5 bg-brand-yellow text-brand-purple-dark text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-yellow-300 transition-colors">
+                <PlusCircle className="w-3.5 h-3.5" /> Post
+              </Link>
+            }
+          />
         </div>
+        <div className="px-4 pt-4 pb-24">
 
-        {/* Search row */}
-        <form
-          onSubmit={e => { e.preventDefault(); showToast('Searching...') }}
-          className="max-w-2xl mx-auto flex gap-2"
-        >
-          <div className="flex-1 flex items-center gap-2 bg-white/10 border border-white/10 rounded-xl px-4 py-3">
-            <Search className="w-4 h-4 text-white/40 shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search for players, items, or services..."
-              className="bg-transparent flex-1 text-white placeholder-white/40 text-sm outline-none"
-            />
+          {/* Search bar */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search gear, apparel, footwear…"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors" />
           </div>
-          <div className="w-40 flex items-center gap-2 bg-white/10 border border-white/10 rounded-xl px-4 py-3">
-            <MapPin className="w-4 h-4 text-white/40 shrink-0" />
-            <input
-              type="text"
-              placeholder="Zip code"
-              className="bg-transparent flex-1 text-white placeholder-white/40 text-sm outline-none"
-            />
-          </div>
-          <button type="submit" className="btn-primary px-5 py-3 rounded-xl font-bold text-sm">
-            Search
-          </button>
-        </form>
-      </section>
 
-      {/* ── Map banner ── */}
-      <div className="max-w-6xl mx-auto px-6 mb-8">
-        <div className="bg-white/5 border border-white/10 rounded-2xl w-full h-48 flex items-center justify-center relative">
-          <span className="text-white/20 text-lg">📍 Map View Coming Soon</span>
-          <div className="absolute top-3 left-3 bg-purple-900 text-white text-sm px-3 py-1.5 rounded-full flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5" />
-            New York, NY
-          </div>
-        </div>
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="max-w-6xl mx-auto px-6 mb-6">
-        <div className="flex gap-2 flex-wrap">
-          {TABS.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-xl px-5 py-2 text-sm transition-all font-medium ${
-                activeTab === tab
-                  ? 'bg-yellow-400 text-purple-900 font-bold'
-                  : 'text-white/60 hover:text-white border border-white/10'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Listings grid ── */}
-      <div className="max-w-6xl mx-auto px-6 mb-10">
-        {filtered.length === 0 ? (
-          <div className="sz-card p-12 text-center">
-            <p className="text-white/40">No listings match your search.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map(listing => (
-              <div key={listing.id} className="sz-card overflow-hidden flex flex-col">
-                <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-                  {listing.promoted && (
-                    <span className="bg-yellow-400 text-purple-900 text-xs font-bold px-2 py-0.5 rounded">Promoted</span>
-                  )}
-                  <span className="bg-white/10 text-white/70 text-xs px-2 py-0.5 rounded">{listing.category}</span>
-                </div>
-                <div className="bg-white/10 w-full aspect-video flex items-center justify-center">
-                  <ListingIcon icon={listing.icon} />
-                </div>
-                <div className="p-4 flex flex-col flex-1">
-                  <p className="text-white font-bold mb-1">{listing.title}</p>
-                  <p className="text-white/60 text-sm mb-2 flex-1 line-clamp-2">{listing.desc}</p>
-                  <div className="flex items-center gap-1 mb-3">
-                    <MapPin className="w-3 h-3 text-white/50" />
-                    <span className="text-white/50 text-xs">{listing.location}</span>
-                  </div>
-                  {listing.price && <p className="text-yellow-400 font-bold text-lg mb-1">{listing.price}</p>}
-                  <button
-                    onClick={() => showToast(`${listing.action} — full listings coming soon!`)}
-                    className="btn-primary w-full mt-3 rounded-xl py-2.5 font-bold text-sm flex items-center justify-center gap-2"
-                  >
-                    {listing.action === 'View Item' && <ShoppingCart className="w-4 h-4" />}
-                    {listing.action === 'Connect'   && <Users className="w-4 h-4" />}
-                    {listing.action === 'Join Event' && <CalendarDays className="w-4 h-4" />}
-                    {listing.action === 'Book Now'  && <Star className="w-4 h-4" />}
-                    {listing.action}
-                  </button>
-                </div>
-              </div>
+          {/* Sport filter */}
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-4 scrollbar-hide">
+            {sportOptions.map(s => (
+              <button key={s.value} onClick={() => setSportFilter(s.value)}
+                className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                  sportFilter === s.value
+                    ? 'bg-brand-yellow text-brand-purple-dark'
+                    : 'bg-white/5 border border-white/10 text-white/60 hover:text-white'
+                }`}>
+                <span>{s.emoji}</span> {s.label}
+              </button>
             ))}
           </div>
-        )}
-      </div>
 
-      {/* ── Sponsored Challenges ── */}
-      <div className="max-w-6xl mx-auto px-6 mb-10">
-        <div className="flex items-center gap-2 mb-1">
-          <TrendingUp className="w-5 h-5 text-yellow-400" />
-          <h2 className="text-2xl font-bold text-white">Sponsored Challenges</h2>
-        </div>
-        <p className="text-white/60 text-sm mb-4">
-          Join brand-sponsored challenges to compete for glory and bonus PlayerPoints.
-        </p>
-
-        <div className="flex gap-3 justify-end mb-4 flex-wrap">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-            <MapPin className="w-3.5 h-3.5 text-white/40" />
-            <input type="text" placeholder="Zip code" className="bg-transparent text-white text-sm placeholder-white/40 outline-none w-24" />
+          {/* Category filter */}
+          <div className="flex gap-2 flex-wrap mb-5">
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  categoryFilter === cat
+                    ? 'bg-brand-yellow text-brand-purple-dark'
+                    : 'bg-white/5 border border-white/10 text-white/60 hover:text-white'
+                }`}>
+                {cat}
+              </button>
+            ))}
           </div>
-          <select className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none">
-            <option value="">All Sports</option>
-            <option value="basketball">Basketball</option>
-            <option value="running">Running</option>
-            <option value="tennis">Tennis</option>
-          </select>
-          <select className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none">
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="ending">Ending Soon</option>
-          </select>
-        </div>
 
-        {CHALLENGES.map(c => {
-          const key = c.title
-          const joined = joinedIds.has(key)
-          return (
-            <div key={key} className="sz-card p-4 mb-3">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-white font-bold">{c.title}</p>
-                <span className="text-white/50 text-sm shrink-0">{c.timeLeft}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/10 my-2">
-                <div className="h-full rounded-full bg-yellow-400" style={{ width: `${c.progress}%` }} />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-white/60 text-sm">
-                  <Users className="w-4 h-4" />
-                  {c.participants} participants
-                </div>
-                <button
-                  onClick={() => {
-                    setJoinedIds(prev => { const s = new Set(prev); s.add(key); return s })
-                    showToast(`Joined "${c.title}"! Full challenge tracking coming soon.`)
-                  }}
-                  disabled={joined}
-                  className="btn-primary px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 disabled:opacity-70"
-                >
-                  {joined ? <><CheckCircle className="w-3.5 h-3.5" /> Joined!</> : <><Filter className="w-3.5 h-3.5" /> Join Challenge</>}
-                </button>
-              </div>
+          {/* Listings */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-yellow/60" />
             </div>
-          )
-        })}
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16">
+              <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-white/20" />
+              <p className="text-white/40 mb-2">No listings found.</p>
+              {user && (
+                <Link href="/marketplace/new" className="text-brand-yellow font-bold text-sm hover:underline">
+                  Be the first to post →
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map(listing => {
+                const sportEntry = SPORT_OPTIONS.find(s => s.value === listing.sport)
+                return (
+                  <motion.button key={listing.id}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    onClick={() => setSelected(listing)}
+                    className="sz-card overflow-hidden text-left flex flex-col hover:border-brand-yellow/30 transition-colors group">
+
+                    {/* Image / placeholder */}
+                    <div className="bg-white/10 aspect-video flex items-center justify-center relative">
+                      {listing.imageUrls?.[0]
+                        ? <img src={listing.imageUrls[0]} alt={listing.title} className="object-cover w-full h-full" />
+                        : <Tag className="w-10 h-10 text-white/20" />
+                      }
+                      <div className="absolute top-2 right-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${CONDITION_COLORS[listing.condition] ?? ''}`}>
+                          {listing.condition}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex flex-col flex-1">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-white/40 text-[10px]">{sportEntry?.emoji} {listing.category}</span>
+                      </div>
+                      <p className="text-white font-bold text-sm mb-1 group-hover:text-brand-yellow transition-colors line-clamp-1">
+                        {listing.title}
+                      </p>
+                      <p className="text-white/50 text-xs mb-3 flex-1 line-clamp-2 leading-relaxed">
+                        {listing.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-brand-yellow font-black">
+                          {listing.price === 0 ? 'Free' : `$${listing.price}`}
+                        </p>
+                        <div className="flex items-center gap-1 text-white/30">
+                          <Users className="w-3 h-3" />
+                          <span className="text-[10px]">{listing.displayName}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Post CTA */}
+          {user && (
+            <div className="mt-8 sz-card p-5 flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-white font-bold mb-0.5">Have gear to sell?</p>
+                <p className="text-white/50 text-sm">Post a listing and connect with local athletes.</p>
+              </div>
+              <Link href="/marketplace/new" className="btn-primary text-sm !py-2 !px-4 flex items-center gap-2 shrink-0">
+                <PlusCircle className="w-4 h-4" /> Post Now
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur border border-white/20 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-xl z-50 pointer-events-none">
-          {toast}
-        </div>
-      )}
-
-    </main>
+      <AnimatePresence>
+        {selected && <ListingModal listing={selected} onClose={() => setSelected(null)} />}
+      </AnimatePresence>
+    </>
   )
 }
