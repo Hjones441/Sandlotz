@@ -9,6 +9,7 @@ const APP_ROUTES = [
   '/marketplace',
   '/perks',
   '/log-activity',
+  '/settings',
 ]
 
 // Auth pages where an authenticated user shouldn't need to land

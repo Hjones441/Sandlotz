@@ -294,7 +294,7 @@ export default function PerksPage() {
         </ul>
         <p className="text-white/30 text-xs mt-4 border-t border-white/10 pt-4">
           For full terms, visit{' '}
-          <Link href="/terms" className="text-yellow-400/60 hover:text-yellow-400 underline">sandlotz.com/terms</Link>
+          <a href="https://sandlotz.com/terms" target="_blank" rel="noopener noreferrer" className="text-yellow-400/60 hover:text-yellow-400 underline">sandlotz.com/terms</a>
           . Questions? Email{' '}
           <a href="mailto:support@sandlotz.com" className="text-yellow-400/60 hover:text-yellow-400 underline">support@sandlotz.com</a>
         </p>
