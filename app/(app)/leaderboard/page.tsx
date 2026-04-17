@@ -269,8 +269,8 @@ export default function LeaderboardPage() {
             Create a private leaderboard for your team, gym, or friend group. Invite-only with custom scoring rules. Available on Sandlotz Pro.
           </p>
         </div>
-        <Link href="/about/products" className="btn-primary text-sm !py-2.5 !px-5 shrink-0 flex items-center gap-2">
-          <Zap className="w-4 h-4" /> Upgrade to Pro
+        <Link href="/perks" className="btn-primary text-sm !py-2.5 !px-5 shrink-0 flex items-center gap-2">
+          <Zap className="w-4 h-4" /> Explore Perks
         </Link>
       </div>
       </div>
