@@ -17,7 +17,8 @@ export default function AppNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50
+    <nav aria-label="Main navigation"
+         className="fixed bottom-0 left-0 right-0 z-50
                     bg-[#120a2e]/95 backdrop-blur-2xl
                     border-t border-white/[0.07]"
          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
@@ -26,7 +27,7 @@ export default function AppNav() {
           // Center FAB
           if (tab === null) {
             return (
-              <Link key="fab" href="/log-activity" className="relative -top-5 flex-shrink-0">
+              <Link key="fab" href="/log-activity" aria-label="Log activity" className="relative -top-5 flex-shrink-0">
                 <motion.div
                   whileTap={{ scale: 0.92 }}
                   whileHover={{ scale: 1.05 }}
@@ -35,7 +36,7 @@ export default function AppNav() {
                 >
                   <Plus className="w-7 h-7 text-brand-purple-dark" strokeWidth={2.5} />
                 </motion.div>
-                <p className="text-[9px] text-center mt-1 text-white/30 font-semibold">Post</p>
+                <p className="text-[9px] text-center mt-1 text-white/30 font-semibold">Log</p>
               </Link>
             )
           }
