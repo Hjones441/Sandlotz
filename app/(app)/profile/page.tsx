@@ -584,10 +584,6 @@ export default function ProfilePage() {
                 Log Activity →
               </Link>
             </div>
-          ) : (
-            <div className="bg-white/[0.02] rounded-xl p-4 text-center">
-              <p className="text-white/30 text-sm">Insights loading…</p>
-            </div>
           )}
         </div>
 
