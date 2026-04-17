@@ -265,7 +265,7 @@ function AiCoachPanel({ acts, profile }: { acts: Activity[]; profile: { totalSco
 
   return (
     <motion.div layout className="rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.03]">
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-3.5">
+      <button onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls="ai-coach-panel" aria-label="Toggle AI Coach" className="w-full flex items-center gap-3 p-3.5">
         <div className="w-8 h-8 rounded-xl bg-brand-yellow/15 flex items-center justify-center flex-shrink-0">
           <Bot className="w-4 h-4 text-brand-yellow" />
         </div>
@@ -281,7 +281,7 @@ function AiCoachPanel({ acts, profile }: { acts: Activity[]; profile: { totalSco
 
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+          <motion.div id="ai-coach-panel" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
             className="border-t border-white/[0.06]">
             {/* Messages */}
@@ -421,11 +421,11 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="w-9 h-9 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center relative">
+              <button aria-label="Notifications" className="w-11 h-11 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-yellow">
                 <Bell className="w-4 h-4 text-white/40" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-brand-yellow rounded-full" />
+                <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-brand-yellow rounded-full" />
               </button>
-              <Link href="/profile" className="w-9 h-9 rounded-xl bg-brand-purple flex items-center justify-center font-black text-sm text-brand-yellow border border-white/10">
+              <Link href="/profile" aria-label="My profile" className="w-11 h-11 rounded-xl bg-brand-purple flex items-center justify-center font-black text-sm text-brand-yellow border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-yellow">
                 {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
               </Link>
             </div>
@@ -552,7 +552,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 px-1">
                 <Users className="w-3.5 h-3.5 text-white/30" />
                 <span className="text-xs text-white/30">Community Activity</span>
-                <span className="ml-auto text-[10px] text-white/20">Columbus, OH</span>
+                <span className="ml-auto text-[10px] text-white/20 bg-white/5 px-2 py-0.5 rounded-full">Preview</span>
               </div>
               {FEED.map((item, i) => (
                 <motion.div key={item.id} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.05 }}
@@ -640,8 +640,11 @@ export default function DashboardPage() {
               ) : activeChallenges.length === 0 ? (
                 <div className="text-center py-12">
                   <Swords className="w-10 h-10 mx-auto mb-3 text-white/20" />
-                  <p className="text-white/40 text-sm mb-1">No active challenges</p>
-                  <p className="text-white/20 text-xs">Check back soon — new challenges drop weekly</p>
+                  <p className="text-white/40 text-sm mb-1">No active challenges right now</p>
+                  <p className="text-white/20 text-xs mb-4">New challenges drop every Monday — check back soon</p>
+                  <Link href="/perks" className="inline-flex items-center gap-1.5 text-xs text-brand-yellow font-bold hover:underline">
+                    Browse Perks instead <ChevronRight className="w-3 h-3" />
+                  </Link>
                 </div>
               ) : (
                 activeChallenges.map(c => (
