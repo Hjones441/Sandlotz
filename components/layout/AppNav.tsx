@@ -10,7 +10,7 @@ const TABS = [
   { href: '/leaderboard', label: 'Ranks',  icon: Trophy     },
   null, // center FAB placeholder
   { href: '/challenges',  label: 'Compete', icon: Swords    },
-  { href: '/marketplace', label: 'Market', icon: ShoppingBag },
+  { href: '/marketplace', label: 'Brands', icon: ShoppingBag },
 ]
 
 export default function AppNav() {
