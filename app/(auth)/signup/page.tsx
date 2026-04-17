@@ -17,6 +17,7 @@ export default function SignupPage() {
   const [email,       setEmail]       = useState('')
   const [password,    setPassword]    = useState('')
   const [sport,       setSport]       = useState('running')
+  const [city,        setCity]        = useState('')
   const [showPw,      setShowPw]      = useState(false)
   const [loading,     setLoading]     = useState(false)
   const [error,       setError]       = useState('')
@@ -28,7 +29,7 @@ export default function SignupPage() {
     setError('')
     setLoading(true)
     try {
-      await signUp(email, password, displayName)
+      await signUp(email, password, displayName, sport, city.trim())
       setSent(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign-up failed. Please try again.')
@@ -147,8 +148,9 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-white/70 mb-2">Primary Sport</label>
+              <label htmlFor="sport" className="block text-sm font-semibold text-white/70 mb-2">Primary Sport</label>
               <select
+                id="sport"
                 value={sport}
                 onChange={e => setSport(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white
@@ -160,6 +162,21 @@ export default function SignupPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="city" className="block text-sm font-semibold text-white/70 mb-2">
+                Your City <span className="text-white/30 font-normal">(for leaderboards)</span>
+              </label>
+              <input
+                id="city"
+                type="text"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                placeholder="Columbus, OH"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white
+                           placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors"
+              />
             </div>
 
             {error && (
