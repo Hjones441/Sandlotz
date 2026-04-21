@@ -45,7 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // Safety timeout — if Firebase doesn't respond in 6 s, treat as signed-out.
+    // Prevents infinite spinner on cold starts, network hiccups, or expired sessions.
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 6000)
+
     const unsub = onAuthStateChanged(auth, async (u) => {
+      clearTimeout(timeout)
       setUser(u)
       if (u) {
         // Set a short-lived cookie so Next.js middleware can detect auth state
@@ -59,7 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false)
     })
-    return unsub
+
+    return () => { clearTimeout(timeout); unsub() }
   }, [])
 
   async function signUp(email: string, password: string, displayName: string, sport = 'running', city = '') {

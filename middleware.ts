@@ -10,6 +10,7 @@ const APP_ROUTES = [
   '/perks',
   '/log-activity',
   '/challenges',
+  '/upgrade',
   '/admin',
 ]
 
@@ -20,9 +21,14 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isAuthed = request.cookies.has('sl-auth')
 
-  // Authenticated user hits the app root or an auth page → go to dashboard
+  // Authenticated user hits root or an auth page → go to dashboard
   if (isAuthed && (pathname === '/' || AUTH_ROUTES.some(r => pathname.startsWith(r)))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Unauthenticated user hits root → login
+  if (!isAuthed && pathname === '/') {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Unauthenticated user tries to access a protected app route → login

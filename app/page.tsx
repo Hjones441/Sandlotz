@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 
-// The app root is the dashboard.
-// Unauthenticated requests are caught by middleware → /login.
-// Authenticated requests land here → /dashboard.
+// Middleware handles auth-aware routing:
+//   authenticated  →  /dashboard
+//   unauthenticated → /login
+// This fallback catches any edge case the middleware misses.
 export default function RootPage() {
-  redirect('/dashboard')
+  redirect('/login')
 }
