@@ -182,6 +182,9 @@ export default function ProfilePage() {
       setActs(a)
       setRedemptions(r)
       setPerks(p.filter(pk => pk.available))
+    }).catch(err => {
+      console.error('[Profile] data fetch failed:', err)
+    }).finally(() => {
       setFetching(false)
     })
   }, [user])

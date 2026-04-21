@@ -369,6 +369,9 @@ export default function DashboardPage() {
       setActs(a)
       setPerks(p.filter(pk => pk.available))
       setChallenges(c)
+    }).catch(err => {
+      console.error('[Dashboard] data fetch failed:', err)
+    }).finally(() => {
       setFetching(false)
     })
   }, [user])
