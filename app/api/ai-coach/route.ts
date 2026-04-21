@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic"
 
 // POST /api/ai-coach
 // Body: { activities: Activity[], totalScore: number, tier: string }
+// totalScore = Sandlotz Score™ (lifetime, never decreases)
 // Returns: { insight: string, tips: string[] }
 
 export async function POST(req: NextRequest) {
@@ -24,11 +25,11 @@ export async function POST(req: NextRequest) {
     `${a.sport} ${a.durationMinutes}min ${a.distanceKm > 0 ? `${a.distanceKm}km ` : ''}intensity=${a.intensity} score=${a.score}${a.fitnessData?.heartRateAvg ? ` hr=${a.fitnessData.heartRateAvg}bpm` : ''}${a.fitnessData?.source ? ` via ${a.fitnessData.source}` : ''}`
   ).join('\n') || 'No activities yet.'
 
-  const systemContext = `You are an elite AI sports coach for Sandlotz — a fitness marketplace where athletes earn PlayerPoints (Sandlotz Score™) for their workouts and redeem them for real brand rewards.
+  const systemContext = `You are an elite AI sports coach for Sandlotz — a fitness platform where athletes earn a Sandlotz Score™ (lifetime rank) and PlayerPoints (spendable rewards currency) by logging verified workouts.
 
 Athlete profile:
 - Tier: ${tier}
-- Total Sandlotz Score: ${totalScore} pts
+- Sandlotz Score™ (lifetime rank): ${totalScore} pts
 - Recent activities:
 ${summary}
 

@@ -337,14 +337,14 @@ export default function ProfilePage() {
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
               <Gift className="w-4 h-4 text-white/50 mx-auto mb-1" />
               <p className="text-2xl font-black text-white">{balance.toLocaleString()}</p>
-              <p className="text-white/40 text-[10px] mt-0.5">Spendable PP</p>
+              <p className="text-white/40 text-[10px] mt-0.5">PlayerPoints</p>
             </div>
           </div>
 
           {/* XP Progress bar */}
           <div>
             <div className="flex justify-between text-[10px] text-white/35 mb-1.5">
-              <span className="font-bold">{tier.label}</span>
+              <span className="text-brand-yellow/60 font-bold tracking-wider">PLAYERPATH™ · {tier.label}</span>
               <span>{tierProg.pointsToNext > 0 ? `${tierProg.pointsToNext.toLocaleString()} pts → ${tierProg.nextLabel}` : 'Max Tier!'}</span>
             </div>
             <div className="h-2.5 rounded-full bg-white/8 overflow-hidden">
@@ -584,7 +584,7 @@ export default function ProfilePage() {
                 Log Activity →
               </Link>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* ── PLAYER RANKING ───────────────────────────────────────────── */}
@@ -618,10 +618,11 @@ export default function ProfilePage() {
         {/* ── QUICK LINKS ───────────────────────────────────────────────── */}
         <div className="sz-card divide-y divide-white/[0.05]">
           {[
-            { href: '/log-activity', icon: <Zap className="w-4 h-4" />,     label: 'Log a Workout',     sub: 'Earn PlayerPoints now'             },
-            { href: '/challenges',   icon: <Target className="w-4 h-4" />,  label: 'Challenges',        sub: 'Compete for bonus rewards'         },
-            { href: '/marketplace',  icon: <ShoppingBag className="w-4 h-4" />, label: 'Gear Marketplace',  sub: 'Buy & sell sports gear'           },
-            { href: '/perks',        icon: <Gift className="w-4 h-4" />,    label: 'Perks Store',       sub: `${balance.toLocaleString()} PP to spend` },
+            { href: '/log-activity', icon: <Zap className="w-4 h-4" />,     label: 'Log a Workout',       sub: 'Earn PlayerPoints now'                    },
+            { href: '/challenges',   icon: <Target className="w-4 h-4" />,  label: 'Challenges',          sub: 'Compete for bonus rewards'                },
+            { href: '/marketplace',  icon: <ShoppingBag className="w-4 h-4" />, label: 'Sponsor Marketplace', sub: 'Redeem with brand partners'          },
+            { href: '/perks',        icon: <Gift className="w-4 h-4" />,    label: 'Perks Store',         sub: `${balance.toLocaleString()} PlayerPoints` },
+            { href: '/upgrade',      icon: <Star className="w-4 h-4" />,    label: 'PlayerPath™ Plans',   sub: 'Rookie · All-Star · Legend'               },
           ].map(item => (
             <Link key={item.href} href={item.href}
               className="flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.03] transition-colors">

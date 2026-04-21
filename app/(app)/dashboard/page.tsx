@@ -419,6 +419,7 @@ export default function DashboardPage() {
                 <span className="text-2xl font-black text-brand-yellow">{formatScore(profile?.totalScore ?? 0)}</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tier.badgeClass}`}>{tier.label}</span>
               </div>
+              <p className="text-[9px] text-white/20 font-medium tracking-wider mt-0.5">SANDLOTZ SCORE™</p>
             </div>
             <div className="flex items-center gap-2">
               <button aria-label="Notifications" className="w-11 h-11 rounded-xl bg-white/5 border border-white/[0.07] flex items-center justify-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-yellow">
@@ -431,10 +432,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Tier XP bar */}
+          {/* PlayerPath™ tier bar */}
           <div className="mb-2">
             <div className="flex justify-between text-[9px] text-white/25 mb-1">
-              <span>{tier.label}</span>
+              <span className="text-brand-yellow/50 font-bold tracking-wider">PLAYERPATH™ · {tier.label}</span>
               <span>{tierProg.pointsToNext > 0 ? `${tierProg.pointsToNext.toLocaleString()} to ${tierProg.nextLabel}` : 'Max Tier!'}</span>
             </div>
             <div className="h-1 rounded-full bg-white/8 overflow-hidden">

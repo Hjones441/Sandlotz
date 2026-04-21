@@ -68,7 +68,7 @@ export default function MarketplaceGuidePage() {
           </div>
           <hr className="border-white/20 mb-5" />
           <p className="text-white/70 text-sm leading-relaxed mb-6">
-            You earn PlayPoints from your workouts. You can spend those points to &ldquo;boost&rdquo; your listings, giving
+            You earn PlayerPoints from your workouts. You can spend those points to &ldquo;boost&rdquo; your listings, giving
             them more visibility in search results and on the marketplace page. Higher-tier members (All-Star and
             Legend) get free monthly boosts and even unlimited opportunities to boost.
           </p>

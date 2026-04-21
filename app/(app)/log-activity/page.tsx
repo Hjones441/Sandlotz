@@ -344,7 +344,7 @@ export default function LogActivityPage() {
   return (
     <div className="max-w-xl mx-auto pb-4">
       <div className="sticky top-0 z-20 bg-[#0e0825]/95 backdrop-blur-xl border-b border-white/[0.05]">
-        <AppHeader title="Post Activity" subtitle="Log a workout · earn PlayerPoints" />
+        <AppHeader title="Log Activity" subtitle="Log a workout · earn PlayerPoints" />
       </div>
       <div className="px-4 pt-4 pb-24">
 

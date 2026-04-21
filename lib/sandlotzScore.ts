@@ -1,10 +1,13 @@
-// ─── Sandlotz Score™ (PlayerPoints) Algorithm ────────────────────────────────
+// ─── Sandlotz Score™ Algorithm ────────────────────────────────────────────────
+// Canonical formula (homepage + scoring policy):
 //
-// Base formula:
-//   score = (duration × intensityMult × sportMult × hrMult × sourceBonus)
-//         + (distanceKm × 2 × sportMult)
-//         + elevationBonus
-//         + caloriesBonus
+//   Sandlotz Score = (duration × intensityMult × sportMult × hrMult × sourceBonus)
+//                  + (distanceKm × 2 × sportMult)
+//                  + elevationBonus
+//                  + caloriesBonus
+//
+// Output is both the lifetime Sandlotz Score™ (never decreases, drives leaderboard)
+// and the PlayerPoints balance (spendable currency, can be redeemed for perks).
 //
 // Modifiers that increase score:
 //   - HR Zone 5 (≥170 bpm): ×1.30

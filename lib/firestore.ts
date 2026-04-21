@@ -17,9 +17,11 @@ import {
   deleteDoc,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { calculateActivityScore, SportType } from './sandlotzScore'
+import { calculateActivityScore, calculateActivityScoreDetailed, SportType } from './sandlotzScore'
 import type { ScoringFitnessData, ScoreBreakdown } from './sandlotzScore'
-import { calculateActivityScoreDetailed } from './sandlotzScore'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const DAILY_POINT_CAP = 500  // per Sandlotz Score™ policy
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -213,7 +215,22 @@ export async function logActivity(params: {
       }
     : undefined
   const breakdown = calculateActivityScoreDetailed(sport, durationMinutes, distanceKm, intensity, scoringFitness)
-  const score     = breakdown.total
+  const rawScore  = breakdown.total
+
+  // ── Daily 500-point cap (per Sandlotz Score™ policy) ──────────────────────
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayActivities = await getDocs(
+    query(
+      collection(db, 'activities'),
+      where('uid', '==', uid),
+      where('createdAt', '>=', Timestamp.fromDate(todayStart)),
+    )
+  )
+  const earnedToday = todayActivities.docs.reduce((sum, d) => sum + ((d.data().score as number) ?? 0), 0)
+  const remaining   = Math.max(0, DAILY_POINT_CAP - earnedToday)
+  const score       = Math.min(rawScore, remaining)
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Write activity document with full score breakdown for audit trail
   await addDoc(collection(db, 'activities'), {
@@ -231,6 +248,8 @@ export async function logActivity(params: {
       hrMultiplier:   breakdown.hrMultiplier,
       sourceVerified: breakdown.sourceVerified,
       durationDamped: breakdown.durationDamped,
+      rawScore,
+      cappedByDaily:  score < rawScore,
     },
     notes,
     ...(imageUrls && imageUrls.length > 0 && { imageUrls }),
