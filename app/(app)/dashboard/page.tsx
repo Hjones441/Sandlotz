@@ -152,13 +152,13 @@ function FeedCard({ act, isMe }: { act: Activity; isMe: boolean }) {
             <p className="text-[11px] text-white/30 mt-0.5">{stats.join(' · ')}</p>
           )}
           {act.notes && (
-            <p className="text-[11px] text-white/50 mt-1 italic line-clamp-1">"{act.notes}"</p>
+            <p className="text-[11px] text-white/50 mt-1 italic line-clamp-1">&quot;{act.notes}&quot;</p>
           )}
         </div>
       </div>
       <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/[0.05]">
         <div className="flex items-center gap-3">
-          <LikeBtn initial={Math.floor(Math.random() * 15)} />
+          <LikeBtn initial={(act.id ?? '').split('').reduce((s, c) => s + c.charCodeAt(0), 0) % 16} />
           <SaveBtn />
         </div>
         <div className="flex items-center gap-1 bg-brand-yellow/10 rounded-full px-2.5 py-1">

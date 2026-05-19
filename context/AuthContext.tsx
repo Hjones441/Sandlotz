@@ -24,7 +24,7 @@ interface AuthContextValue {
   user:        User | null
   profile:     UserProfile | null
   loading:     boolean
-  signUp:      (email: string, password: string, displayName: string) => Promise<void>
+  signUp:      (email: string, password: string, displayName: string, sport?: string) => Promise<void>
   signIn:      (email: string, password: string) => Promise<void>
   signInGoogle:() => Promise<void>
   logOut:      () => Promise<void>
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub
   }, [])
 
-  async function signUp(email: string, password: string, displayName: string) {
+  async function signUp(email: string, password: string, displayName: string, sport?: string) {
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await sendEmailVerification(cred.user)
     await updateProfile(cred.user, { displayName })
@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName,
       email,
       photoURL: null,
+      sport: sport ?? 'other',
     })
     await loadProfile(cred.user)
   }

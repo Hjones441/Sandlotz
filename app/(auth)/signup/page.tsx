@@ -26,7 +26,7 @@ export default function SignupPage() {
     setError('')
     setLoading(true)
     try {
-      await signUp(email, password, displayName)
+      await signUp(email, password, displayName, sport)
       setSent(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign-up failed. Please try again.')
@@ -131,6 +131,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Min 8 characters"
+                  autoComplete="new-password"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white
                              placeholder:text-white/30 focus:outline-none focus:border-brand-yellow transition-colors"
                 />

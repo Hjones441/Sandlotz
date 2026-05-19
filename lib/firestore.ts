@@ -215,7 +215,7 @@ export async function getLeaderboard(
   sportFilter?: string,
 ): Promise<LeaderboardEntry[]> {
   const entriesRef = collection(db, 'leaderboards', city, 'entries')
-  const q          = query(entriesRef, orderBy('totalScore', 'desc'))
+  const q          = query(entriesRef, orderBy('totalScore', 'desc'), limit(100))
   const snap       = await getDocs(q)
 
   let entries = snap.docs.map(d => d.data() as LeaderboardEntry)

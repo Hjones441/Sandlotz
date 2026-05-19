@@ -44,7 +44,7 @@ export default function AppNav() {
           const active = pathname === href || pathname.startsWith(href + '/')
 
           return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-1 px-3 py-1 relative min-w-[52px]">
+            <Link key={href} href={href} aria-current={active ? 'page' : undefined} className="flex flex-col items-center gap-1 px-3 py-1 relative min-w-[52px]">
               {active && (
                 <motion.div
                   layoutId="appNavPill"
